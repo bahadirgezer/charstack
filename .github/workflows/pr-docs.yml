@@ -1,0 +1,112 @@
+name: PR Documentation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+permissions:
+  pull-requests: write
+  issues: write
+  contents: read
+
+concurrency:
+  group: pr-docs-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  update-pr-docs:
+    name: Update PR docs
+    runs-on: [self-hosted, macOS, ARM64, bgpro-charstack]
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    env:
+      PR_DOCS_DIR: /tmp/pr-docs-${{ github.run_id }}-${{ github.run_attempt }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      PR_ACTION: ${{ github.event.action }}
+      PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+      PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      PR_BEFORE_SHA: ${{ github.event.before }}
+      PR_TITLE: ${{ github.event.pull_request.title }}
+      PR_MERGED: ${{ github.event.pull_request.merged }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      GROQ_MODEL: groq/compound
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Validate Groq secret
+        run: |
+          if [[ -z "${GROQ_API_KEY:-}" ]]; then
+            echo "::error::Missing GROQ_API_KEY repository secret."
+            exit 1
+          fi
+
+      - name: Collect PR context
+        run: .github/scripts/pr-docs/collect-context.sh
+
+      - name: Route docs mode
+        id: route
+        run: |
+          case "$PR_ACTION" in
+            synchronize)
+              echo "docs_mode=push_comment" >> "$GITHUB_OUTPUT"
+              ;;
+            opened|reopened|closed)
+              echo "docs_mode=body" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "docs_mode=skip" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
+      - name: Generate docs with Groq
+        id: ai
+        if: steps.route.outputs.docs_mode != 'skip'
+        run: |
+          set +e
+          DOCS_MODE='${{ steps.route.outputs.docs_mode }}' .github/scripts/pr-docs/generate-groq.sh
+          status=$?
+          set -e
+
+          if [[ $status -eq 0 ]]; then
+            echo "result=ai" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [[ $status -eq 42 ]]; then
+            echo "result=fallback" >> "$GITHUB_OUTPUT"
+            echo "Groq unavailable/rate-limited; using fallback formatter."
+            exit 0
+          fi
+
+          exit $status
+
+      - name: Build fallback docs
+        if: steps.route.outputs.docs_mode != 'skip' && steps.ai.outputs.result == 'fallback'
+        run: |
+          DOCS_MODE='${{ steps.route.outputs.docs_mode }}' .github/scripts/pr-docs/build-fallback.sh
+
+      - name: Merge generated docs into PR body
+        id: merge
+        if: steps.route.outputs.docs_mode == 'body'
+        run: .github/scripts/pr-docs/merge-body.sh
+
+      - name: Update PR description
+        if: steps.route.outputs.docs_mode == 'body' && steps.merge.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr edit "$PR_NUMBER" --body-file "$PR_DOCS_DIR/final_pr_body.md"
+
+      - name: Post push comment
+        if: steps.route.outputs.docs_mode == 'push_comment'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr comment "$PR_NUMBER" --body-file "$PR_DOCS_DIR/generated_block.md"
+
+      - name: No PR description change
+        if: steps.route.outputs.docs_mode == 'body' && steps.merge.outputs.changed != 'true'
+        run: echo "PR description already up to date."
