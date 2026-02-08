@@ -1,0 +1,653 @@
+# Charstack iOS Development Roadmap
+
+A minimal daily task manager built with SwiftUI and SwiftData on iOS 17+.
+
+---
+
+## Timeline Overview
+
+| Phase | Version | Duration | Status | Focus |
+|-------|---------|----------|--------|-------|
+| Phase 0 | N/A | Completed | ✅ Complete | Foundation & Planning |
+| Phase 1 | v0.1.0 | 2-3 weeks | 📋 Pending | MVP Development |
+| Phase 2 | v0.5.0 | 1 week | 📋 Pending | CloudKit Sync & Calendar |
+| Phase 3 | v0.8.0 | 1 week | 📋 Pending | Notifications & Settings |
+| Phase 4 | v1.0.0 | 1-2 weeks | 📋 Pending | Polish & App Store Launch |
+| Phase 5 | v2.0.0 | 2-3 weeks | 📋 Planned | User Accounts & Cloud (BaaS) |
+| Post-Launch | v2.1+ | Ongoing | 📋 Planned | Iterations & Expansion |
+
+---
+
+## Phase 0: Foundation ✅ COMPLETE
+
+**Target Date:** February 8, 2026
+**Branch:** main
+**Git Tag:** `foundation/phase-0`
+
+### Deliverables
+
+- [x] Project Brief & Vision Document
+- [x] Requirements Specification (functional & technical)
+- [x] Architecture Design (MVVM with SwiftData)
+- [x] Repository Structure & Project Organization
+- [x] Git Workflow & Branch Strategy Documentation
+- [x] Tech Stack Confirmation (iOS 17+, SwiftUI, SwiftData, MVVM)
+- [x] Development Environment Setup Guide
+
+**Completion Notes:**
+- Foundation work complete as of February 8, 2026
+- Ready to begin Phase 1 MVP Development
+
+---
+
+## Phase 1: MVP Development
+
+**Version:** v0.1.0
+**Duration:** 2-3 weeks
+**Branch:** develop
+**Git Tag:** `release/v0.1.0` (on merge to main)
+**Target Completion:** Early March 2026
+
+The MVP focuses on the core 1-3-5 daily task management experience with four regions and day rollover.
+
+### Week 1: Data Layer & Core Models
+
+**Objective:** Establish persistent data storage and business logic foundation
+
+- [ ] SwiftData Setup & Configuration
+  - [ ] App delegate/SwiftData container initialization
+  - [ ] Model container setup with migration strategy
+  - [ ] Error handling & data persistence validation
+
+- [ ] Task Model Definition
+  - [ ] Task struct with properties: id, title, description, priority (1/3/5), region, dateCreated, dateCompleted, status
+  - [ ] Codable conformance for future sync/export
+  - [ ] Index definitions for efficient queries
+
+- [ ] Enums & Constants
+  - [ ] TaskRegion enum (Morning, Afternoon, Evening, Backlog)
+  - [ ] TaskStatus enum (pending, completed, deferred)
+  - [ ] TaskPriority enum (one, three, five)
+  - [ ] Constants file for colors, spacing, animations
+
+- [ ] TaskService (Repository Pattern)
+  - [ ] CRUD operations (create, read, update, delete tasks)
+  - [ ] Query methods (fetch by date, region, status)
+  - [ ] 1-3-5 constraint validation (max 1, 3, 5 tasks per region)
+  - [ ] Batch operations for day rollover
+
+- [ ] Unit Tests (Target: >80% data layer coverage)
+  - [ ] Task model tests
+  - [ ] TaskService constraint validation tests
+  - [ ] Date handling & timezone tests
+  - [ ] SwiftData integration tests
+
+- [ ] 1-3-5 Constraint Engine
+  - [ ] Validation logic preventing > 1 task in Morning region
+  - [ ] Validation logic preventing > 3 tasks in Afternoon region
+  - [ ] Validation logic preventing > 5 tasks in Evening region
+  - [ ] Backlog acceptance of overflow tasks
+  - [ ] Error feedback for constraint violations
+
+**Deliverables:**
+- Stable SwiftData schema with no migration issues
+- TaskService fully tested and documented
+- Constraint engine preventing invalid states
+
+---
+
+### Week 2: UI — Today & Region Views
+
+**Objective:** Build the main interface showing today's tasks by region
+
+- [ ] TodayView (Main Tab)
+  - [ ] Navigation structure setup
+  - [ ] Safe area handling for dynamic island
+  - [ ] Scroll view with four region sections
+  - [ ] Empty state for completed day
+
+- [ ] RegionCard Component
+  - [ ] Region name header with visual hierarchy
+  - [ ] Task count badge (e.g., "1/1", "2/3")
+  - [ ] Visual distinction between regions (colors or icons)
+  - [ ] Responsive layout for all iPhone sizes
+
+- [ ] RegionFocusView (Detail)
+  - [ ] Expanded view of a single region
+  - [ ] Full task list for region
+  - [ ] Add task button for region
+  - [ ] Edit/delete actions
+  - [ ] Navigation back to today view
+
+- [ ] TaskRow Component
+  - [ ] Checkbox for completion state
+  - [ ] Task title display
+  - [ ] Priority indicator (visual: dot, badge, or icon)
+  - [ ] Tap to expand/collapse description
+  - [ ] Swipe actions (edit, delete, defer)
+
+- [ ] Quick Add Form
+  - [ ] Title input field
+  - [ ] Optional description
+  - [ ] Region selection dropdown
+  - [ ] Add button with validation
+  - [ ] Keyboard handling & dismissal
+
+- [ ] ViewModels
+  - [ ] TodayViewModel (manages today's task state, loading)
+  - [ ] RegionFocusViewModel (single region management)
+  - [ ] TaskRowViewModel (task display logic)
+  - [ ] MVVM state binding with @Published properties
+
+- [ ] UI Tests & Preview Integration
+  - [ ] SwiftUI previews for all components
+  - [ ] Preview with mock data
+  - [ ] Device-specific preview variations
+
+**Deliverables:**
+- Fully functional today view with all four regions
+- Add/edit/delete task flow working end-to-end
+- All UI components tested in previews
+
+---
+
+### Week 3: Backlog & Day Rollover
+
+**Objective:** Complete core workflow with overflow handling and daily refresh
+
+- [ ] BacklogView (Tab)
+  - [ ] List of incomplete tasks from previous days
+  - [ ] Filter by date created
+  - [ ] Sort options (date, region, priority)
+  - [ ] Bulk actions (select multiple, move to today)
+
+- [ ] Move Gesture/Action
+  - [ ] Drag-and-drop or swipe action to move tasks to today
+  - [ ] Constraint validation before acceptance
+  - [ ] Reject feedback if region is full
+  - [ ] Success animation/haptic feedback
+
+- [ ] DayRolloverService
+  - [ ] Scheduled daily reset at midnight (or user-configurable time)
+  - [ ] Mark incomplete morning/afternoon/evening tasks as deferred
+  - [ ] Move deferred tasks to backlog automatically
+  - [ ] Preserve completed tasks in history
+  - [ ] Idempotent operation (safe to call multiple times)
+
+- [ ] Empty States
+  - [ ] "No tasks for today" message with CTA
+  - [ ] "Backlog is empty" message
+  - [ ] "Day complete" celebration view
+  - [ ] Consistent empty state imagery/messaging
+
+- [ ] Persistence & App Lifecycle
+  - [ ] Handle app backgrounding/foregrounding
+  - [ ] Trigger day rollover check on app launch
+  - [ ] Persist rollover state to prevent duplicates
+  - [ ] Handle edge cases (time zone changes, device sleep)
+
+- [ ] Integration Testing
+  - [ ] End-to-end flow: add task → complete → navigate → day rolls over
+  - [ ] Backlog operations: move tasks, defer handling
+  - [ ] State consistency across views
+
+**Deliverables:**
+- Complete daily workflow working end-to-end
+- Backlog populated with yesterday's incomplete tasks
+- Day rollover functioning reliably
+
+---
+
+### MVP Definition of Done Checklist
+
+Before tagging v0.1.0, all items must be complete:
+
+- [ ] All Phase 1 weekly deliverables implemented
+- [ ] Unit test coverage ≥ 80% for data layer
+- [ ] UI responsive on iPhone 14, 15, 16 (plus SE)
+- [ ] No console warnings or errors
+- [ ] All memory leaks addressed (Xcode instruments verification)
+- [ ] Accessibility pass (VoiceOver testing, Dynamic Type support)
+- [ ] Dark mode fully functional
+- [ ] Manual QA sign-off on:
+  - [ ] Add task flow (all regions)
+  - [ ] Edit/delete operations
+  - [ ] 1-3-5 constraint enforcement
+  - [ ] Day rollover accuracy
+  - [ ] Backlog move functionality
+  - [ ] App launch & background/foreground transitions
+- [ ] Documentation updated (README, API docs for TaskService)
+- [ ] Code reviewed and merged to develop branch
+
+---
+
+## Phase 2: CloudKit Sync & Calendar Integration
+
+**Version:** v0.5.0
+**Duration:** 1 week
+**Branch:** develop
+**Git Tag:** `release/v0.5.0`
+**Target Completion:** Mid-March 2026
+
+### CloudKit Setup
+
+- [ ] Add iCloud capability to Xcode project
+- [ ] Add Background Modes capability (Remote Notifications)
+- [ ] Ensure all SwiftData model properties have defaults or are optional
+- [ ] Remove any @Attribute(.unique) constraints (CloudKit incompatible)
+- [ ] Test sync between two devices with same Apple ID
+- [ ] Handle CloudKit sync errors gracefully
+- [ ] Add sync status indicator in UI (optional)
+
+### Calendar Integration
+
+- [ ] Calendar View Tab
+  - [ ] Month view with task count badges
+  - [ ] Tap date to view tasks for that day
+  - [ ] Visual indication of "completed days"
+  - [ ] Navigation to past/future weeks
+
+- [ ] Historical Task View
+  - [ ] View all tasks (completed & incomplete) for selected date
+  - [ ] Read-only for past dates
+  - [ ] Completion time stamps
+  - [ ] Statistics: tasks completed, streak, weekly summary
+
+- [ ] CalendarViewModel
+  - [ ] Fetch task counts for all dates
+  - [ ] Handle date range queries efficiently
+  - [ ] Compute completion metrics
+
+- [ ] Testing
+  - [ ] Calendar view loads correct task counts
+  - [ ] Historical queries work across month boundaries
+  - [ ] Performance acceptable for 6+ months of data
+
+---
+
+## Phase 3: Notifications & Settings
+
+**Version:** v0.8.0
+**Duration:** 1 week
+**Branch:** develop
+**Git Tag:** `release/v0.8.0`
+**Target Completion:** Late March 2026
+
+### Deliverables
+
+- [ ] Settings View Tab
+  - [ ] Notifications toggle
+  - [ ] Daily reminder time picker
+  - [ ] Regional reminder toggle (on/off per region)
+  - [ ] Theme selection (light, dark, system)
+  - [ ] Day rollover time configuration
+  - [ ] About & version info
+
+- [ ] Local Notifications
+  - [ ] Daily reminder at configured time
+  - [ ] Notification for overdue tasks (evening region)
+  - [ ] Request user permission flow
+  - [ ] Handle system notification settings
+
+- [ ] SettingsViewModel
+  - [ ] UserDefaults persistence for settings
+  - [ ] Notification scheduling/cancellation
+  - [ ] Observable settings updates
+
+- [ ] Testing
+  - [ ] Settings persist across app restarts
+  - [ ] Notifications schedule and fire correctly
+  - [ ] Permission flow works on first launch
+
+---
+
+## Phase 4: Polish & App Store Preparation
+
+**Version:** v1.0.0
+**Duration:** 1-2 weeks
+**Branch:** develop → main
+**Git Tag:** `release/v1.0.0`
+**Target Completion:** Early-mid April 2026
+
+### UI/UX Polish
+
+- [ ] Animations & Transitions
+  - [ ] Smooth region expand/collapse animations
+  - [ ] Task completion checkmark animation
+  - [ ] Page transitions between tabs
+  - [ ] Loading state animations
+
+- [ ] Visual Design
+  - [ ] Consistent color palette (primary, secondary, accent)
+  - [ ] Typography hierarchy reviewed
+  - [ ] Spacing/padding audit
+  - [ ] Icon consistency (SF Symbols)
+
+- [ ] Interaction Design
+  - [ ] Haptic feedback on task completion
+  - [ ] Long-press context menus (iOS 15+ style)
+  - [ ] Confirmation dialogs for destructive actions
+  - [ ] Keyboard shortcuts on iPad
+
+### Accessibility
+
+- [ ] VoiceOver Testing
+  - [ ] All interactive elements announced correctly
+  - [ ] Logical navigation order
+  - [ ] Gestures communicated clearly
+
+- [ ] Dynamic Type Support
+  - [ ] All text scales properly (7-point to extra large)
+  - [ ] Layout adjustments for large text
+  - [ ] No text truncation issues
+
+- [ ] Color & Contrast
+  - [ ] WCAG AA compliance for all text
+  - [ ] No color-only information
+  - [ ] High contrast mode support
+
+### Comprehensive Testing
+
+- [ ] Performance Testing
+  - [ ] App launch time < 2 seconds
+  - [ ] Smooth scrolling (60 FPS)
+  - [ ] Memory usage < 100 MB baseline
+  - [ ] Battery impact minimal
+
+- [ ] Compatibility Testing
+  - [ ] iOS 17.0 through latest version
+  - [ ] All iPhone models (SE to Pro Max)
+  - [ ] iPad support verified
+  - [ ] iPadOS optimizations (split view, keyboard)
+
+- [ ] Regression Testing
+  - [ ] All Phase 1-3 features still functional
+  - [ ] Edge cases (low storage, no network, etc.)
+  - [ ] Extended use (24+ hours of continuous running)
+
+### App Store Assets & Documentation
+
+- [ ] App Metadata
+  - [ ] App name, subtitle, description finalized
+  - [ ] Keywords researched and optimized
+  - [ ] Privacy policy drafted & linked
+  - [ ] Support URL and contact email
+
+- [ ] Screenshots & Preview Video
+  - [ ] 5-7 screenshots for each device (iPhone 6.7", 6.1", 5.5")
+  - [ ] Localized screenshots (English at minimum)
+  - [ ] Optional: preview video (15-30 seconds)
+
+- [ ] Build Artifacts
+  - [ ] App icons (all required sizes, rounded corners)
+  - [ ] Launch screen finalized
+  - [ ] App thinning configured (bitcode, asset catalogs)
+
+- [ ] Documentation
+  - [ ] User guide / help documentation
+  - [ ] Privacy policy
+  - [ ] Terms of service (if applicable)
+  - [ ] CHANGELOG for v1.0.0
+  - [ ] Internal architecture documentation
+
+### App Store Submission
+
+- [ ] TestFlight Beta
+  - [ ] Internal testing group (team members)
+  - [ ] External testing group (5+ beta testers minimum)
+  - [ ] Feedback collection & critical bug fixes
+  - [ ] Beta duration: 1 week minimum
+
+- [ ] Final Review
+  - [ ] App review guidelines checklist
+  - [ ] No rejected categories (gambling, alcohol, etc.)
+  - [ ] Privacy policy page created and linked (GitHub Pages or similar)
+  - [ ] App privacy nutrition labels filled in App Store Connect
+  - [ ] Age rating questionnaire completed
+  - [ ] Demo account credentials prepared (if login required at this version)
+  - [ ] App review notes prepared
+
+- [ ] Submission & Monitoring
+  - [ ] Submit build to App Store Connect
+  - [ ] Monitor review queue
+  - [ ] Address any App Review rejections
+  - [ ] Publish on approval
+
+### Release Deliverables
+
+- [ ] Git main branch with all Phase 1-4 code
+- [ ] Version 1.0.0 tagged and released
+- [ ] Signed .ipa build archived
+- [ ] Release notes published (GitHub, website)
+- [ ] Launch announcement ready
+
+---
+
+## Phase 5: User Accounts & Cloud (BaaS)
+
+**Version:** v2.0.0
+**Duration:** 2-3 weeks
+**Branch:** develop
+**Git Tag:** `release/v2.0.0`
+**Target Completion:** TBD (post App Store launch)
+
+### Authentication
+
+- [ ] Integrate Backend-as-a-Service (Firebase or Supabase — TBD)
+- [ ] Implement Sign in with Apple (App Store Guideline 4.8 — mandatory if any third-party login)
+- [ ] Implement Google Sign-In
+- [ ] Build login/signup flow UI
+- [ ] Handle auth state persistence and token refresh
+- [ ] Provide demo account for App Store review (Guideline requirement)
+
+### Account Management (App Store Required)
+
+- [ ] Account settings screen (profile, email, linked providers)
+- [ ] Account deletion flow — Settings > Account > Delete Account (Guideline 5.1.1(v))
+- [ ] Full data deletion on account delete (not just deactivation)
+- [ ] Revoke Sign in with Apple tokens on deletion (REST API)
+- [ ] Warn about active subscriptions before deletion
+- [ ] Confirmation dialog with clear language
+- [ ] Data deletion confirmation notification
+
+### Cloud Data Sync
+
+- [ ] Sync task data to BaaS cloud database
+- [ ] Conflict resolution strategy (last-write-wins or merge)
+- [ ] Offline-first with background sync
+- [ ] Sync status indicator in UI
+- [ ] Migration path from CloudKit-only to BaaS
+
+### Privacy & Compliance (App Store Required)
+
+- [ ] Privacy policy — accessible in-app AND App Store Connect
+- [ ] Privacy nutrition labels — accurate data type declarations
+- [ ] SDK privacy manifests for all third-party SDKs
+- [ ] Minimal data collection during registration (Guideline 5.1.1)
+- [ ] GDPR compliance considerations
+
+### Definition of Done
+
+- [ ] User can sign in with Apple or Google
+- [ ] User can delete their account and all data from within the app
+- [ ] Data syncs across devices via BaaS
+- [ ] Privacy policy accessible in Settings and App Store
+- [ ] Demo account works for App Store reviewers
+- [ ] All App Store Review Guidelines satisfied
+
+**Tag:** `v2.0.0-accounts`
+
+---
+
+## Post-Launch Improvements
+
+### v1.1: Quick Wins
+
+**Duration:** 1-2 weeks
+**Focus:** User feedback & polish based on early app store reviews
+
+- [ ] Smart Task Suggestions
+  - [ ] Recurring task templates
+  - [ ] Suggested tasks based on history
+  - [ ] Quick templates (e.g., "Exercise", "Review", "Plan")
+
+- [ ] Export & Sharing
+  - [ ] Export daily/weekly summary as PDF
+  - [ ] Share completion stats
+  - [ ] CSV export for analysis
+
+- [ ] Minor UX Improvements
+  - [ ] Keyboard shortcuts reference (? key)
+  - [ ] Swipe gesture tutorials (onboarding)
+  - [ ] Task search across all regions/backlog
+
+---
+
+### v1.2: Power User Features
+
+**Duration:** 2-3 weeks
+**Focus:** Advanced task management for committed users
+
+- [ ] Task Subtasks/Checklists
+  - [ ] Add subtasks within a task
+  - [ ] Partial completion tracking
+  - [ ] Subtask progress indicator
+
+- [ ] Task Tags & Filtering
+  - [ ] Add tags to tasks (e.g., "work", "health", "personal")
+  - [ ] Filter tasks by tag in calendar view
+  - [ ] Tag management & cleanup
+
+- [ ] Repeat/Recurring Tasks
+  - [ ] Create recurring tasks (daily, weekly, monthly)
+  - [ ] Smart snooze (defer by hours/days)
+  - [ ] Recurring task templates
+
+- [ ] Custom Regional Labels
+  - [ ] Rename regions (e.g., "Urgent", "Important", "Nice-to-have")
+  - [ ] Reorder regions
+  - [ ] Custom colors per region
+
+---
+
+### v1.3: Insights & Analytics
+
+**Duration:** 2-3 weeks
+**Focus:** Data visualization and personal productivity metrics
+
+- [ ] Completion Dashboard
+  - [ ] Weekly completion rate (%)
+  - [ ] Monthly trends graph
+  - [ ] Best day/time for task completion
+  - [ ] Region-specific completion rates
+
+- [ ] Streak Tracking
+  - [ ] Current daily completion streak
+  - [ ] Longest streak ever
+  - [ ] Streak preservation logic
+  - [ ] Streak notifications/badges
+
+- [ ] Personal Reports
+  - [ ] Weekly summary email (opt-in)
+  - [ ] Monthly recap with insights
+  - [ ] Comparison to personal averages
+
+- [ ] Data Export for Analysis
+  - [ ] JSON export of all tasks & metadata
+  - [ ] Integration with personal data tools
+
+---
+
+### v1.4: Platform Expansion
+
+**Duration:** 3-4 weeks
+**Focus:** Multi-platform and ecosystem integration
+
+- [ ] iPadOS App
+  - [ ] Optimized iPad layout (split view, multi-window)
+  - [ ] Keyboard shortcuts (full list)
+  - [ ] Trackpad/mouse support
+
+- [ ] macOS Companion App
+  - [ ] Mac version of Charstack
+  - [ ] CloudKit sync between devices
+  - [ ] Menu bar widget
+
+- [ ] iCloud Sync (Optional)
+  - [ ] Multi-device sync via CloudKit
+  - [ ] Automatic backup
+  - [ ] Conflict resolution
+
+- [ ] Siri Shortcuts Integration
+  - [ ] Shortcuts for common actions (add task, check today's tasks)
+  - [ ] Voice command support
+  - [ ] Automation triggers
+
+- [ ] Home Screen Widgets
+  - [ ] Small widget: today's task count
+  - [ ] Medium widget: region summary
+  - [ ] Large widget: all regions at a glance
+  - [ ] Interactive widgets (check off tasks)
+
+---
+
+## Release Checklist Template
+
+Use this checklist for each major release:
+
+### Pre-Release (1 week before)
+
+- [ ] Feature freeze: no new features, only bug fixes
+- [ ] Automated test suite passes 100%
+- [ ] Code review complete for all changes
+- [ ] Dependency updates finalized
+- [ ] Xcode linting passes (SwiftLint configured)
+- [ ] Memory leak detection run (Instruments)
+
+### Release Candidate
+
+- [ ] Create release branch from develop
+- [ ] Update version number (Info.plist, Xcode build settings)
+- [ ] Update CHANGELOG with all changes
+- [ ] Build archive and verify signing
+- [ ] TestFlight build uploaded & distributed
+
+### TestFlight Phase (3-5 days)
+
+- [ ] Internal testers report no critical issues
+- [ ] External testers feedback reviewed
+- [ ] Performance benchmarks acceptable
+- [ ] Accessibility audit completed
+- [ ] Critical bugs fixed and rebuilt
+
+### Final Submission
+
+- [ ] Final build tested on device
+- [ ] All assets in place (icons, screenshots, previews)
+- [ ] App Store metadata complete and reviewed
+- [ ] Submit build to App Store Connect
+- [ ] Monitor App Review for rejection
+
+### Post-Launch
+
+- [ ] Monitor App Store reviews (daily for first week)
+- [ ] Check crash logs via Xcode Organizer
+- [ ] Respond to user feedback
+- [ ] Plan hotfix if critical issues arise
+- [ ] Announce release on social/website
+
+---
+
+## Notes & Conventions
+
+- **Branches:** Main features on `develop`, hotfixes on `main`
+- **Commits:** Atomic, descriptive, reference issues (e.g., "feat: add task filtering #12")
+- **Git Tags:** Format `release/vX.Y.Z` for all releases
+- **Testing:** Aim for ≥80% code coverage; prioritize data layer
+- **Documentation:** Maintain README, API docs, and architecture diagrams
+- **Review:** All merges to develop and main require code review
+
+---
+
+**Last Updated:** February 8, 2026
+**Maintained By:** Bahadır Gezer

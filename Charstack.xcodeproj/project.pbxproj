@@ -16,9 +16,9 @@
 			path = Charstack;
 			sourceTree = "<group>";
 		};
-		3FAC33432F1D239B00E3D3F4 /* context */ = {
+		3FAC335C2F38937B00E3D3F4 /* docs */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = context;
+			path = docs;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -37,7 +37,7 @@
 		3FAC332C2F1D1F7F00E3D3F4 = {
 			isa = PBXGroup;
 			children = (
-				3FAC33432F1D239B00E3D3F4 /* context */,
+				3FAC335C2F38937B00E3D3F4 /* docs */,
 				3FAC33372F1D1F7F00E3D3F4 /* Charstack */,
 				3FAC33362F1D1F7F00E3D3F4 /* Products */,
 			);
@@ -68,7 +68,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				3FAC33372F1D1F7F00E3D3F4 /* Charstack */,
-				3FAC33432F1D239B00E3D3F4 /* context */,
+				3FAC335C2F38937B00E3D3F4 /* docs */,
 			);
 			name = Charstack;
 			packageProductDependencies = (
