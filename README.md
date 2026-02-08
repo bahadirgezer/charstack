@@ -2,7 +2,7 @@
 
 A minimal daily task manager for iOS. Four regions, the 1-3-5 rule, and nothing else.
 
-[![iOS 17+](https://img.shields.io/badge/iOS-17.0%2B-blue)](https://developer.apple.com/ios/)
+[![iOS 26+](https://img.shields.io/badge/iOS-26.0%2B-blue)](https://developer.apple.com/ios/)
 [![Swift 6](https://img.shields.io/badge/Swift-6.0-orange)](https://www.swift.org)
 [![SwiftUI](https://img.shields.io/badge/SwiftUI-100%25-blueviolet)](https://developer.apple.com/swiftui/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-lightgrey)](LICENSE)
@@ -19,7 +19,7 @@ Your day is split into **Morning**, **Afternoon**, **Evening**, and **Backlog**.
 
 ## Tech
 
-SwiftUI · SwiftData · MVVM · iOS 17+ · No external dependencies
+SwiftUI · SwiftData · MVVM · iOS 26+ · No external dependencies
 
 ## Setup
 

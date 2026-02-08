@@ -11,9 +11,9 @@ This document outlines the complete technical architecture, design patterns, and
 ## 1. Technology Stack
 
 ### Platform & Language
-- **Platform:** iOS 17+ (targets latest iOS features while maintaining reasonable backward compatibility)
+- **Platform:** iOS 26+ (targets latest iOS features while maintaining reasonable backward compatibility)
 - **Language:** Swift 6.0 (strict concurrency checking enabled)
-- **Rationale:** Swift 6.0 provides actor-based concurrency guarantees, preventing data races at compile time. iOS 17+ allows use of latest SwiftUI features and optimizations.
+- **Rationale:** Swift 6.0 provides actor-based concurrency guarantees, preventing data races at compile time. iOS 26+ allows use of latest SwiftUI features and optimizations.
 
 ### UI Framework
 - **Primary:** SwiftUI 100% (no UIKit fallback)
@@ -615,11 +615,11 @@ final class TaskListUITests: XCTestCase {
 - Built on CloudKit infrastructure (future-proof)
 
 **Trade-offs:**
-- Requires iOS 17+ (acceptable for new app)
+- Requires iOS 26+ (acceptable for new app)
 - Smaller ecosystem than CoreData
 - Mitigation: Fallback to JSON export for compatibility
 
-**Related:** Considered using Realm, but SwiftData's native status and iOS 17+ support won out
+**Related:** Considered using Realm, but SwiftData's native status and iOS 26+ support won out
 
 ---
 
@@ -691,7 +691,7 @@ final class TaskListUITests: XCTestCase {
 **Decision:** 100% SwiftUI; no UIKit fallback components
 
 **Rationale:**
-- iOS 17+ baseline allows full SwiftUI feature set
+- iOS 26+ baseline allows full SwiftUI feature set
 - SwiftUI's declarative model maps perfectly to MVVM
 - Faster iteration and preview-driven development
 - Smaller codebase (no dual implementations)
@@ -702,7 +702,7 @@ final class TaskListUITests: XCTestCase {
 - Some custom components may require workarounds (acceptable)
 - Dependency on Apple's continued SwiftUI investment (justified)
 
-**Implementation:** SwiftUI 4.0+ (available on iOS 17+); use modifiers over legacy apis
+**Implementation:** SwiftUI 4.0+ (available on iOS 26+); use modifiers over legacy apis
 
 ---
 

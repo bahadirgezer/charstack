@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		3F020E072F39448500BEA777 /* SwiftLintFramework in Frameworks */ = {isa = PBXBuildFile; productRef = 3F020E062F39448500BEA777 /* SwiftLintFramework */; };
+		3F020E092F39448500BEA777 /* swiftlint in Frameworks */ = {isa = PBXBuildFile; productRef = 3F020E082F39448500BEA777 /* swiftlint */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		3FAC33502F3A000000E3D3F4 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -44,6 +49,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3F020E072F39448500BEA777 /* SwiftLintFramework in Frameworks */,
+				3F020E092F39448500BEA777 /* swiftlint in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -90,6 +97,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				3F020E0B2F39448C00BEA777 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				3FAC33372F1D1F7F00E3D3F4 /* Charstack */,
@@ -97,6 +105,8 @@
 			);
 			name = Charstack;
 			packageProductDependencies = (
+				3F020E062F39448500BEA777 /* SwiftLintFramework */,
+				3F020E082F39448500BEA777 /* swiftlint */,
 			);
 			productName = Charstack;
 			productReference = 3FAC33352F1D1F7F00E3D3F4 /* Charstack.app */;
@@ -151,6 +161,9 @@
 			);
 			mainGroup = 3FAC332C2F1D1F7F00E3D3F4;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				3F020E052F39448500BEA777 /* XCRemoteSwiftPackageReference "SwiftLint" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 3FAC33362F1D1F7F00E3D3F4 /* Products */;
 			projectDirPath = "";
@@ -197,6 +210,10 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		3F020E0B2F39448C00BEA777 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = 3F020E0A2F39448C00BEA777 /* SwiftLintBuildToolPlugin */;
+		};
 		3FAC33512F3A000000E3D3F4 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 3FAC33342F1D1F7F00E3D3F4 /* Charstack */;
@@ -266,6 +283,7 @@
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
 			};
 			name = Debug;
 		};
@@ -322,6 +340,7 @@
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 6.0;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -463,6 +482,35 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		3F020E052F39448500BEA777 /* XCRemoteSwiftPackageReference "SwiftLint" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/realm/SwiftLint";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.63.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		3F020E062F39448500BEA777 /* SwiftLintFramework */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3F020E052F39448500BEA777 /* XCRemoteSwiftPackageReference "SwiftLint" */;
+			productName = SwiftLintFramework;
+		};
+		3F020E082F39448500BEA777 /* swiftlint */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3F020E052F39448500BEA777 /* XCRemoteSwiftPackageReference "SwiftLint" */;
+			productName = swiftlint;
+		};
+		3F020E0A2F39448C00BEA777 /* SwiftLintBuildToolPlugin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3F020E052F39448500BEA777 /* XCRemoteSwiftPackageReference "SwiftLint" */;
+			productName = "plugin:SwiftLintBuildToolPlugin";
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 3FAC332D2F1D1F7F00E3D3F4 /* Project object */;
 }

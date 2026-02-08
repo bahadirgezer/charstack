@@ -5,7 +5,7 @@
 - **Version**: 1.0
 - **Last Updated**: February 8, 2026
 - **Status**: Ready for Development
-- **Target Platform**: iOS 17.0+
+- **Target Platform**: iOS 26.0+
 - **Architecture**: MVVM with SwiftUI + SwiftData
 
 ---
@@ -449,9 +449,9 @@
 ### 3.4 iOS Version Support (NFR-2.4.x)
 
 #### NFR-2.4.1: Minimum iOS Version
-- **Requirement**: iOS 17.0 minimum.
+- **Requirement**: iOS 26.0 minimum.
 - **Rationale**: Enables SwiftData (no CoreData), latest SwiftUI features, Swift 6 support.
-- **Testing**: Deploy to iOS 17.0 simulator and iPhone 12 or newer device.
+- **Testing**: Deploy to iOS 26.0 simulator and iPhone 12 or newer device.
 
 #### NFR-2.4.2: Device Support
 - **Primary**: iPhone (all current and prior-generation models).
@@ -767,7 +767,7 @@ Structure enforcing 1 Must-Do, up to 3 Complementary, up to 5 Misc per active re
 ## 8. Constraints & Assumptions
 
 ### Technical Constraints
-- iOS 17.0+ only (no iOS 16 support)
+- iOS 26.0+ only (no iOS 16 support)
 - iPhone primary; iPad deferred
 - SwiftUI 100%; no UIKit
 - SwiftData for persistence (no CoreData)

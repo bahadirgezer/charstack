@@ -1,6 +1,6 @@
 # Charstack iOS Development Roadmap
 
-A minimal daily task manager built with SwiftUI and SwiftData on iOS 17+.
+A minimal daily task manager built with SwiftUI and SwiftData on iOS 26+.
 
 ---
 
@@ -31,7 +31,7 @@ A minimal daily task manager built with SwiftUI and SwiftData on iOS 17+.
 - [x] Architecture Design (MVVM with SwiftData)
 - [x] Repository Structure & Project Organization
 - [x] Git Workflow & Branch Strategy Documentation
-- [x] Tech Stack Confirmation (iOS 17+, SwiftUI, SwiftData, MVVM)
+- [x] Tech Stack Confirmation (iOS 26+, SwiftUI, SwiftData, MVVM)
 - [x] Development Environment Setup Guide
 
 **Completion Notes:**
@@ -356,7 +356,7 @@ Before tagging v0.1.0, all items must be complete:
   - [ ] Battery impact minimal
 
 - [ ] Compatibility Testing
-  - [ ] iOS 17.0 through latest version
+  - [ ] iOS 26.0 through latest version
   - [ ] All iPhone models (SE to Pro Max)
   - [ ] iPad support verified
   - [ ] iPadOS optimizations (split view, keyboard)
