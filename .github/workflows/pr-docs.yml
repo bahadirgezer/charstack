@@ -11,7 +11,7 @@ permissions:
 jobs:
   auto-describe:
     name: Auto-describe PR
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, macOS, ARM64, bgpro-charstack]
     # Only run if the PR body is empty/null
     if: github.event.pull_request.body == '' || github.event.pull_request.body == null
 
@@ -35,6 +35,14 @@ jobs:
           echo "$DIFF_STAT" > /tmp/diff_stat.txt
           echo "$DIFF_CONTENT" > /tmp/diff_content.txt
           echo "$COMMITS" > /tmp/commits.txt
+
+      - name: Debug secret presence
+        run: |
+          if [[ -n "${{ secrets.GEMINI_API_KEY }}" ]]; then
+            echo "Secret is available to this run"
+          else
+            echo "Secret is NOT available to this run"
+          fi
 
       - name: Generate AI description
         id: ai
