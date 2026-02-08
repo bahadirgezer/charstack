@@ -47,24 +47,20 @@ Charstack is a minimal iOS daily task manager built around **four day regions** 
 ## Project Structure
 ```
 Charstack/
-├── App/                     # Entry point, app coordinator
+├── CharstackApp.swift       # @main entry point, ModelContainer setup
+├── ContentView.swift        # Root view (placeholder until Week 2)
 ├── Core/
-│   ├── Models/              # SwiftData @Model classes + enums
-│   ├── Services/            # TaskService, DayRolloverService, etc.
-│   └── Persistence/         # ModelContainer setup
-├── Features/
-│   ├── Today/               # Dashboard with 4 region cards
-│   ├── RegionFocus/         # Single-region task list (1-3-5)
-│   ├── Backlog/             # Backlog list + triage
-│   └── Settings/            # User preferences
+│   ├── Models/              # CharstackTask (@Model), Region, TaskBucket, TaskStatus enums
+│   ├── Services/            # TaskService (CRUD + 1-3-5 + rollover)
+│   └── Persistence/         # ModelContainerSetup (production + testing containers)
+├── Features/                # (Week 2+) TodayView, RegionFocus, Backlog, Settings
 ├── Shared/
-│   ├── Components/          # Reusable views (TaskRow, EmptyState, etc.)
-│   ├── Extensions/          # Date+, View+, etc.
-│   └── Theme/               # Colors, Typography
-├── Resources/               # Assets, Localizable.strings
-└── Tests/
-    ├── CharstackTests/      # Unit tests
-    └── CharstackUITests/    # UI tests
+│   └── Extensions/          # Date+Extensions
+├── Resources/               # Assets.xcassets
+CharstackTests/
+├── Models/                  # Region, TaskBucket, TaskStatus, CharstackTask tests
+├── Services/                # TaskServiceTests (CRUD, constraints, rollover)
+├── Extensions/              # DateExtensionsTests
 ```
 
 ## Session & Tracking Files
@@ -96,5 +92,5 @@ See `docs/REQUIREMENTS.md` section 2.6 for full details.
 - **Tags**: Semantic versioning (`v0.1.0`, `v1.0.0`, etc.)
 
 ## Current Phase
-Phase 0 (Foundation) is complete. Phase 1 (MVP) is next.
+Phase 1 (MVP) Week 1 (Data Layer) is complete. Week 2 (UI Layer) is next.
 See `.claude/TODAY.md` for current tasks.
