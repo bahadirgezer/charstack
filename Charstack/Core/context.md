@@ -1,0 +1,28 @@
+# Core/ — Context
+
+## What's Here
+The `Core/` directory contains the data layer and business logic for Charstack. No UI code lives here.
+
+### Models/
+- **CharstackTask.swift** — The primary SwiftData `@Model`. CloudKit-safe: no `@Attribute(.unique)`, all properties have defaults. Enums stored as raw `String` values for `#Predicate` compatibility, with typed computed accessors.
+- **Region.swift** — `morning`, `afternoon`, `evening`, `backlog`. Active regions enforce 1-3-5; backlog is unconstrained.
+- **TaskBucket.swift** — `must` (max 1), `complementary` (max 3), `misc` (max 5), `none` (unconstrained).
+- **TaskStatus.swift** — `todo`, `inProgress`, `done`, `deferred`. Only `todo`/`inProgress` count toward bucket limits.
+
+### Services/
+- **TaskService.swift** — `@MainActor` class that owns all CRUD and business logic. Validates title (non-empty) and 1-3-5 constraints before insert/move. Includes `performDayRollover()` for batch moving overdue incomplete tasks to backlog.
+
+### Persistence/
+- **ModelContainerSetup.swift** — Factory for production (on-disk) and testing (in-memory) `ModelContainer` instances. The schema registers `CharstackTask` as the sole model type.
+
+## Key Design Decisions
+1. **Raw string enum storage:** SwiftData `#Predicate` can't compare enums. Stored as strings, accessed via computed properties.
+2. **`@MainActor` not `actor`:** `ModelContext` isn't `Sendable`, so TaskService must run on main actor.
+3. **Day rollover is on TaskService:** No separate `DayRolloverService` — simpler with shared `ModelContext`.
+4. **`deferred` status:** Distinguishes rolled-over tasks from fresh backlog items.
+
+## What's Not Done
+- No `DayRolloverService` (integrated into TaskService)
+- No `NotificationService` (Phase 3)
+- No `BackupService` (future)
+- No migration strategy yet (will be needed when schema changes)
