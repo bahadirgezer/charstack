@@ -14,7 +14,8 @@ enum TaskServiceError: LocalizedError, Equatable {
 
     var errorDescription: String? {
         switch self {
-        case let .bucketFull(bucket, region):
+        // swiftlint:disable:next pattern_matching_keywords
+        case .bucketFull(let bucket, let region):
             "\(region.displayName) already has the maximum \(bucket.maxCount) \(bucket.displayName) task(s)"
         case .taskNotFound(let identifier):
             "Task not found: \(identifier)"
