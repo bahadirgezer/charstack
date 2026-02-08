@@ -63,21 +63,21 @@ if ! git cat-file -e "$BASE_COMMIT^{commit}" 2>/dev/null; then
   exit 1
 fi
 
+HEAD_SHORT="$(git rev-parse --short=7 "$HEAD_COMMIT")"
+
 # Full PR context (base...head)
 git diff --shortstat "$BASE_COMMIT...$HEAD_COMMIT" > "$PR_DOCS_DIR/full_shortstat.txt" || true
-git diff --stat=140 "$BASE_COMMIT...$HEAD_COMMIT" > "$PR_DOCS_DIR/full_diff_stat_raw.txt" || true
+git diff --stat=120 "$BASE_COMMIT...$HEAD_COMMIT" > "$PR_DOCS_DIR/full_diff_stat_raw.txt" || true
 git log --no-merges --pretty='- %h %s' "$BASE_COMMIT..$HEAD_COMMIT" > "$PR_DOCS_DIR/full_commits_raw.txt" || true
 git diff --name-status "$BASE_COMMIT...$HEAD_COMMIT" > "$PR_DOCS_DIR/full_name_status_raw.txt" || true
-
-# Send bounded patch context to control token usage.
 git diff "$BASE_COMMIT...$HEAD_COMMIT" -- \
   '*.swift' '*.md' '*.yml' '*.yaml' '*.json' '*.plist' '*.xcodeproj/project.pbxproj' \
   > "$PR_DOCS_DIR/full_diff_patch_raw.txt" || true
 
-truncate_to_limits "$PR_DOCS_DIR/full_diff_stat_raw.txt" "$PR_DOCS_DIR/full_diff_stat.txt" 140 12000
-truncate_to_limits "$PR_DOCS_DIR/full_commits_raw.txt" "$PR_DOCS_DIR/full_commits.txt" 90 9000
-truncate_to_limits "$PR_DOCS_DIR/full_name_status_raw.txt" "$PR_DOCS_DIR/full_name_status.txt" 180 10000
-truncate_to_limits "$PR_DOCS_DIR/full_diff_patch_raw.txt" "$PR_DOCS_DIR/full_diff_patch.txt" 260 22000
+truncate_to_limits "$PR_DOCS_DIR/full_diff_stat_raw.txt" "$PR_DOCS_DIR/full_diff_stat.txt" 90 6000
+truncate_to_limits "$PR_DOCS_DIR/full_commits_raw.txt" "$PR_DOCS_DIR/full_commits.txt" 40 2800
+truncate_to_limits "$PR_DOCS_DIR/full_name_status_raw.txt" "$PR_DOCS_DIR/full_name_status.txt" 90 5000
+truncate_to_limits "$PR_DOCS_DIR/full_diff_patch_raw.txt" "$PR_DOCS_DIR/full_diff_patch.txt" 80 5500
 
 rm -f \
   "$PR_DOCS_DIR/full_diff_stat_raw.txt" \
@@ -87,7 +87,7 @@ rm -f \
 
 ensure_non_empty "$PR_DOCS_DIR/full_shortstat.txt"
 
-# Push delta context (before..head), useful for synchronize events.
+# Push delta context (before..head)
 printf 'N/A\n' > "$PR_DOCS_DIR/push_shortstat.txt"
 printf 'N/A\n' > "$PR_DOCS_DIR/push_diff_stat.txt"
 printf 'N/A\n' > "$PR_DOCS_DIR/push_commits.txt"
@@ -103,18 +103,17 @@ if [[ "$PR_ACTION" == "synchronize" && -n "${PR_BEFORE_SHA:-}" && "$PR_BEFORE_SH
     PUSH_CONTEXT_AVAILABLE="true"
 
     git diff --shortstat "${PR_BEFORE_SHA}..$HEAD_COMMIT" > "$PR_DOCS_DIR/push_shortstat.txt" || true
-    git diff --stat=140 "${PR_BEFORE_SHA}..$HEAD_COMMIT" > "$PR_DOCS_DIR/push_diff_stat_raw.txt" || true
+    git diff --stat=120 "${PR_BEFORE_SHA}..$HEAD_COMMIT" > "$PR_DOCS_DIR/push_diff_stat_raw.txt" || true
     git log --no-merges --pretty='- %h %s' "${PR_BEFORE_SHA}..$HEAD_COMMIT" > "$PR_DOCS_DIR/push_commits_raw.txt" || true
     git diff --name-status "${PR_BEFORE_SHA}..$HEAD_COMMIT" > "$PR_DOCS_DIR/push_name_status_raw.txt" || true
-
     git diff "${PR_BEFORE_SHA}..$HEAD_COMMIT" -- \
       '*.swift' '*.md' '*.yml' '*.yaml' '*.json' '*.plist' '*.xcodeproj/project.pbxproj' \
       > "$PR_DOCS_DIR/push_diff_patch_raw.txt" || true
 
-    truncate_to_limits "$PR_DOCS_DIR/push_diff_stat_raw.txt" "$PR_DOCS_DIR/push_diff_stat.txt" 100 8000
-    truncate_to_limits "$PR_DOCS_DIR/push_commits_raw.txt" "$PR_DOCS_DIR/push_commits.txt" 40 4500
-    truncate_to_limits "$PR_DOCS_DIR/push_name_status_raw.txt" "$PR_DOCS_DIR/push_name_status.txt" 120 6500
-    truncate_to_limits "$PR_DOCS_DIR/push_diff_patch_raw.txt" "$PR_DOCS_DIR/push_diff_patch.txt" 160 15000
+    truncate_to_limits "$PR_DOCS_DIR/push_diff_stat_raw.txt" "$PR_DOCS_DIR/push_diff_stat.txt" 70 4200
+    truncate_to_limits "$PR_DOCS_DIR/push_commits_raw.txt" "$PR_DOCS_DIR/push_commits.txt" 20 1800
+    truncate_to_limits "$PR_DOCS_DIR/push_name_status_raw.txt" "$PR_DOCS_DIR/push_name_status.txt" 70 3500
+    truncate_to_limits "$PR_DOCS_DIR/push_diff_patch_raw.txt" "$PR_DOCS_DIR/push_diff_patch.txt" 100 8000
 
     rm -f \
       "$PR_DOCS_DIR/push_diff_stat_raw.txt" \
@@ -131,6 +130,7 @@ jq -n \
   --arg action "$PR_ACTION" \
   --arg base_ref "$PR_BASE_REF" \
   --arg head_commit "$HEAD_COMMIT" \
+  --arg head_short "$HEAD_SHORT" \
   --arg merged "${PR_MERGED:-false}" \
   --arg title "${PR_TITLE:-}" \
   --arg push_context "$PUSH_CONTEXT_AVAILABLE" \
@@ -139,6 +139,7 @@ jq -n \
     action: $action,
     base_ref: $base_ref,
     head_commit: $head_commit,
+    head_short: $head_short,
     merged: ($merged == "true"),
     title: $title,
     push_context_available: ($push_context == "true")
