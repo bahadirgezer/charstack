@@ -131,304 +131,128 @@ Charstack/
 ├── Charstack.xcodeproj
 │   └── project.pbxproj
 │
-├── Charstack/
-│   ├── App/
-│   │   ├── CharstackApp.swift           # App entry point, SwiftData container setup
-│   │   └── AppCoordinator.swift         # Navigation routing
+├── Charstack/                          # Main app source
+│   ├── CharstackApp.swift              # @main entry point, ModelContainer setup
+│   ├── ContentView.swift               # Root view (placeholder, replaced in Week 2)
 │   │
-│   ├── Models/
-│   │   ├── Task.swift                   # SwiftData Task model + enums
-│   │   ├── Region.swift                 # Region enum (morning, afternoon, evening, backlog)
-│   │   ├── TaskBucket.swift             # TaskBucket enum (must, complementary, misc, none)
-│   │   └── TaskStatus.swift             # TaskStatus enum (todo, doing, done)
+│   ├── Core/
+│   │   ├── Models/
+│   │   │   ├── CharstackTask.swift     # SwiftData @Model — CloudKit-safe task model
+│   │   │   ├── Region.swift            # Region enum (morning, afternoon, evening, backlog)
+│   │   │   ├── TaskBucket.swift        # TaskBucket enum (must, complementary, misc, none)
+│   │   │   └── TaskStatus.swift        # TaskStatus enum (todo, inProgress, done, deferred)
+│   │   │
+│   │   ├── Services/
+│   │   │   └── TaskService.swift       # CRUD, 1-3-5 enforcement, day rollover, queries
+│   │   │
+│   │   └── Persistence/
+│   │       └── ModelContainerSetup.swift # Production + testing container factories
 │   │
-│   ├── Services/
-│   │   ├── TaskService.swift            # CRUD operations, 1-3-5 rule enforcement
-│   │   ├── DayRolloverService.swift     # Automatic daily reset logic
-│   │   ├── NotificationService.swift    # Local notification management
-│   │   └── BackupService.swift          # JSON export/import (future)
+│   ├── Shared/
+│   │   └── Extensions/
+│   │       └── Date+Extensions.swift   # Date helpers (startOfDay, endOfDay, etc.)
 │   │
-│   ├── ViewModels/
-│   │   ├── TaskListViewModel.swift      # Main task grid, region management
-│   │   ├── RegionViewModel.swift        # Per-region task management
-│   │   ├── TaskDetailViewModel.swift    # Task editing and creation
-│   │   ├── TaskEditViewModel.swift      # Task creation/editing form
-│   │   └── AppRootViewModel.swift       # App-wide state
-│   │
-│   ├── Views/
-│   │   ├── RootView.swift               # App root, navigation setup
-│   │   │
-│   │   ├── TaskList/
-│   │   │   ├── TaskListView.swift       # Main 4-region grid layout
-│   │   │   ├── RegionView.swift         # Individual region container
-│   │   │   ├── TaskRowView.swift        # Single task cell
-│   │   │   └── TaskCardView.swift       # Task card with drag support
-│   │   │
-│   │   ├── TaskDetail/
-│   │   │   ├── TaskDetailView.swift     # Task view with editing options
-│   │   │   └── TaskDetailEditView.swift # Inline or sheet editing
-│   │   │
-│   │   ├── TaskForm/
-│   │   │   ├── TaskFormView.swift       # Reusable form (create/edit)
-│   │   │   ├── TaskTitleField.swift
-│   │   │   ├── TaskNotesField.swift
-│   │   │   ├── RegionSelector.swift
-│   │   │   ├── BucketSelector.swift
-│   │   │   └── StatusToggle.swift
-│   │   │
-│   │   ├── Components/
-│   │   │   ├── RegionHeader.swift       # Region title with 1-3-5 indicator
-│   │   │   ├── TaskCountBadge.swift     # Visual count for each bucket
-│   │   │   ├── EmptyStateView.swift
-│   │   │   ├── LoadingView.swift
-│   │   │   └── ConfirmationDialog.swift
-│   │   │
-│   │   └── Settings/
-│   │       ├── SettingsView.swift       # App settings (theme, notifications, etc)
-│   │       └── ExportView.swift         # Task export as JSON
-│   │
-│   ├── Utilities/
-│   │   ├── DateHelper.swift             # Date manipulation, day boundaries
-│   │   ├── Constants.swift              # App-wide constants
-│   │   ├── Extensions.swift             # Swift stdlib extensions
-│   │   └── Logging.swift                # Structured logging helper
+│   ├── Features/                       # (Week 2+)
+│   │   ├── Today/                      # Dashboard with 4 region cards
+│   │   ├── RegionFocus/                # Single-region task list (1-3-5)
+│   │   ├── Backlog/                    # Backlog list + triage
+│   │   └── Settings/                   # User preferences
 │   │
 │   ├── Resources/
-│   │   ├── Localizable.strings          # String localization
-│   │   ├── Colors.xcassets
-│   │   ├── Fonts.xcassets
-│   │   └── AppIcon.appiconset
+│   │   └── Assets.xcassets
 │   │
 │   └── Preview Content/
-│       ├── PreviewData.swift            # Mock tasks for previews
 │       └── Preview Assets/
 │
-├── CharstackTests/
-│   ├── Services/
-│   │   ├── TaskServiceTests.swift       # CRUD, validation, 1-3-5 enforcement tests
-│   │   ├── DayRolloverServiceTests.swift
-│   │   └── NotificationServiceTests.swift
-│   │
-│   ├── ViewModels/
-│   │   ├── TaskListViewModelTests.swift
-│   │   └── TaskDetailViewModelTests.swift
-│   │
+├── CharstackTests/                     # Unit tests (Swift Testing)
 │   ├── Models/
-│   │   └── TaskModelTests.swift         # Model validation, computed properties
+│   │   ├── RegionTests.swift
+│   │   ├── TaskBucketTests.swift
+│   │   ├── TaskStatusTests.swift
+│   │   └── CharstackTaskTests.swift
 │   │
-│   └── Utilities/
-│       └── DateHelperTests.swift
-│
-├── CharstackUITests/
-│   ├── TaskListUITests.swift            # Navigation, task creation flow
-│   └── TaskDetailUITests.swift
+│   ├── Services/
+│   │   └── TaskServiceTests.swift      # CRUD, constraints, rollover, edge cases
+│   │
+│   ├── Extensions/
+│   │   └── DateExtensionsTests.swift
+│   │
+│   └── CharstackTests.swift            # Smoke test
 │
 ├── docs/
-│   ├── ARCHITECTURE.md                  # This file
-│   ├── SETUP.md                         # Development setup guide
-│   ├── API.md                           # Service layer API documentation
-│   └── DECISIONS.md                     # Detailed design decision log
+│   ├── ARCHITECTURE.md                 # This file
+│   ├── PROJECT_BRIEF.md                # Original concept and vision
+│   ├── REQUIREMENTS.md                 # Functional/non-functional + App Store compliance
+│   └── ROADMAP.md                      # Development phases and milestones
 │
 └── README.md
 ```
 
 ### Directory Annotations
 
-- **App/:** Application entry point and navigation coordination
-- **Models/:** Data models with business logic (but not service calls)
-- **Services/:** Business logic layer - CRUD, validation, notifications
-- **ViewModels/:** State management for UI, orchestrates Services and data queries
-- **Views/:** SwiftUI components organized by feature area
-- **Components/:** Reusable UI elements used across features
-- **Utilities/:** Helper functions, extensions, constants
-- **Resources/:** Localizable strings, assets, configuration
+- **Core/Models/:** SwiftData @Model classes and supporting enums. Business rules live at model level (computed properties, convenience methods) but enforcement is in Services.
+- **Core/Services/:** Business logic layer — CRUD operations, 1-3-5 constraint validation, day rollover. ViewModels call Services; Views never call Services directly.
+- **Core/Persistence/:** SwiftData ModelContainer configuration. Production (on-disk) and testing (in-memory) factories.
+- **Shared/Extensions/:** Swift standard library extensions (Date helpers, etc.).
+- **Features/:** (Week 2+) Feature modules organized by screen — each contains Views + ViewModels.
+- **Resources/:** Asset catalogs, localizable strings.
 
 ---
 
 ## 4. Data Layer
 
-### SwiftData Task Model
+### SwiftData Task Model — `CharstackTask`
+
+> **Source of truth:** `Charstack/Core/Models/CharstackTask.swift`
+
+The model uses raw `String` storage for enums (region, bucket, status) to ensure SwiftData
+`#Predicate` compatibility, with typed computed accessors for ergonomic use in code.
 
 ```swift
-import SwiftData
-import Foundation
-
 @Model
-final class Task {
-    /// Unique identifier for the task
-    // No @Attribute(.unique) — CloudKit sync requires no unique constraints
-    var id: UUID
-
-    /// Task title/name (required)
-    var title: String
-
-    /// Extended notes and details (optional)
+final class CharstackTask {
+    var identifier: UUID = UUID()       // No @Attribute(.unique) — CloudKit safe
+    var title: String = ""
     var notes: String?
+    var regionRawValue: String = "backlog"       // Stored as String for #Predicate
+    var bucketRawValue: String = "none"
+    var statusRawValue: String = "todo"
+    var plannedDate: Date = Date()
+    var sortOrder: Int = 0
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+    var completedAt: Date?
 
-    /// Region: morning, afternoon, evening, or backlog
-    var region: Region
+    // Typed accessors (transient, not stored)
+    var region: Region { get/set via regionRawValue }
+    var bucket: TaskBucket { get/set via bucketRawValue }
+    var status: TaskStatus { get/set via statusRawValue }
+    var isOverdue: Bool { computed }
 
-    /// Priority bucket: must (1), complementary (3), misc (5), none (unassigned)
-    var bucket: TaskBucket
-
-    /// Current status: todo, doing, done
-    var status: TaskStatus
-
-    /// Date task is planned for (defaults to current date)
-    var plannedDate: Date
-
-    /// When task was created
-    var createdAt: Date
-
-    /// Last modification timestamp
-    var updatedAt: Date
-
-    /// Display order within region+bucket (lower = higher priority visually)
-    var order: Int
-
-    /// If true, task automatically carries over to next day if not completed
-    var autoCarry: Bool
-
-    /// If true, task stays at top of region
-    var isSticky: Bool
-
-    /// Optional expiration date (task auto-archives after)
-    var expiresAt: Date?
-
-    init(
-        id: UUID = UUID(),
-        title: String,
-        notes: String? = nil,
-        region: Region = .backlog,
-        bucket: TaskBucket = .none,
-        status: TaskStatus = .todo,
-        plannedDate: Date = Date(),
-        createdAt: Date = Date(),
-        updatedAt: Date = Date(),
-        order: Int = 0,
-        autoCarry: Bool = false,
-        isSticky: Bool = false,
-        expiresAt: Date? = nil
-    ) {
-        self.id = id
-        self.title = title
-        self.notes = notes
-        self.region = region
-        self.bucket = bucket
-        self.status = status
-        self.plannedDate = plannedDate
-        self.createdAt = createdAt
-        self.updatedAt = updatedAt
-        self.order = order
-        self.autoCarry = autoCarry
-        self.isSticky = isSticky
-        self.expiresAt = expiresAt
-    }
-
-    /// Computed property: is this task overdue?
-    var isOverdue: Bool {
-        guard status != .done else { return false }
-        return plannedDate < Date().startOfDay
-    }
-
-    /// Computed property: is this task expired?
-    var isExpired: Bool {
-        guard let expiresAt = expiresAt else { return false }
-        return expiresAt < Date()
-    }
-}
-
-// MARK: - Enums
-
-enum Region: String, Codable, CaseIterable, Comparable {
-    case morning
-    case afternoon
-    case evening
-    case backlog
-
-    var displayName: String {
-        switch self {
-        case .morning: "Morning"
-        case .afternoon: "Afternoon"
-        case .evening: "Evening"
-        case .backlog: "Backlog"
-        }
-    }
-
-    var order: Int {
-        switch self {
-        case .morning: 0
-        case .afternoon: 1
-        case .evening: 2
-        case .backlog: 3
-        }
-    }
-
-    static func < (lhs: Region, rhs: Region) -> Bool {
-        lhs.order < rhs.order
-    }
-}
-
-enum TaskBucket: String, Codable, CaseIterable, Comparable {
-    case must       // Priority 1 - must accomplish
-    case complementary // Priority 3 - nice to have
-    case misc       // Priority 5 - would be nice
-    case none       // Not assigned to bucket
-
-    var displayName: String {
-        switch self {
-        case .must: "Must (1)"
-        case .complementary: "Complementary (3)"
-        case .misc: "Misc (5)"
-        case .none: "Unassigned"
-        }
-    }
-
-    var maxCount: Int {
-        switch self {
-        case .must: 1
-        case .complementary: 3
-        case .misc: 5
-        case .none: Int.max
-        }
-    }
-
-    var order: Int {
-        switch self {
-        case .must: 0
-        case .complementary: 1
-        case .misc: 2
-        case .none: 3
-        }
-    }
-
-    static func < (lhs: TaskBucket, rhs: TaskBucket) -> Bool {
-        lhs.order < rhs.order
-    }
-}
-
-enum TaskStatus: String, Codable, CaseIterable {
-    case todo       // Not started
-    case doing      // In progress
-    case done       // Completed
-
-    var displayName: String {
-        switch self {
-        case .todo: "To Do"
-        case .doing: "Doing"
-        case .done: "Done"
-        }
-    }
+    // Convenience mutations
+    func markCompleted()
+    func markIncomplete()
+    func deferToBacklog()
+    func assignToRegion(_:bucket:)
 }
 ```
 
+### Enums
+
+| Enum | Cases | Key Properties |
+|------|-------|---------------|
+| `Region` | morning, afternoon, evening, backlog | `displayName`, `systemImageName`, `isConstrained`, `sortOrder` |
+| `TaskBucket` | must, complementary, misc, none | `maxCount` (1/3/5/∞), `displayName`, `sortOrder` |
+| `TaskStatus` | todo, inProgress, done, deferred | `isIncomplete`, `countsTowardBucketLimit` |
+
 ### Key Data Design Decisions
 
-1. **UUID for id:** Enables offline-first support and future cloud sync without server-generated IDs
-2. **plannedDate:** Allows scheduling tasks for future days; paired with DayRolloverService
-3. **bucket:** Enforces 1-3-5 rule at data level; validated by TaskService
-4. **autoCarry & isSticky:** Provides flexible task management without complex dependencies
-5. **Timestamps (createdAt, updatedAt):** Enable future audit trails and conflict resolution
+1. **Raw String storage for enums:** SwiftData `#Predicate` doesn't support enum comparisons. Stored as raw strings with typed computed accessors.
+2. **UUID `identifier` (not `id`):** Avoids conflict with SwiftData's implicit `id`. No `@Attribute(.unique)` for CloudKit compatibility.
+3. **`plannedDate`:** Enables per-day constraint enforcement and future scheduling.
+4. **`completedAt`:** Nullable timestamp — set on completion, cleared on revert. Enables future completion history.
+5. **`deferred` status:** Distinct from `todo` — indicates the task was auto-rolled-over, not freshly created.
+6. **No `autoCarry`/`isSticky`/`expiresAt` in MVP:** Deferred to Phase 2. Current rollover moves all incomplete active-region tasks to backlog unconditionally.
 
 ---
 
@@ -514,178 +338,41 @@ final class TaskListViewModel: Sendable {
 
 ### TaskService
 
-Handles all Task-related CRUD operations and business rule enforcement:
+> **Source of truth:** `Charstack/Core/Services/TaskService.swift`
 
-```swift
-actor TaskService {
-    private let container: ModelContext
+`TaskService` is `@MainActor` (not an actor) because SwiftData's `ModelContext` is not `Sendable`.
+It owns all CRUD operations, 1-3-5 constraint enforcement, and day rollover logic.
 
-    init(container: ModelContext) {
-        self.container = container
-    }
+**Key API surface:**
 
-    // MARK: - CRUD Operations
+| Method | Purpose |
+|--------|---------|
+| `createTask(_:)` | Insert task after validating title + bucket capacity |
+| `fetchTasks(for:in:)` | Tasks for a date, optionally filtered by region |
+| `fetchBacklogTasks()` | All backlog tasks, newest first |
+| `fetchTask(byIdentifier:)` | Single task lookup |
+| `updateTaskContent(identifier:title:notes:)` | Edit title/notes |
+| `moveTask(identifier:toRegion:bucket:)` | Move with constraint check at destination |
+| `toggleTaskCompletion(identifier:)` | Toggle done/todo |
+| `updateTaskSortOrder(identifier:newSortOrder:)` | Reorder within bucket |
+| `deleteTask(identifier:)` | Permanent deletion |
+| `countActiveTasks(in:bucket:on:)` | Active task count for constraint queries |
+| `remainingCapacity(in:bucket:on:)` | How many more tasks can be added |
+| `performDayRollover()` | Batch move overdue incomplete tasks → backlog (idempotent) |
 
-    nonisolated func createTask(_ task: Task) throws {
-        let context = container
+**Error types:** `TaskServiceError` — `.bucketFull`, `.taskNotFound`, `.emptyTitle`, `.invalidOperation`
 
-        // Validate bucket count before insertion
-        try validateBucketLimit(
-            region: task.region,
-            bucket: task.bucket,
-            context: context
-        )
+### Day Rollover (integrated into TaskService)
 
-        context.insert(task)
-        try context.save()
-    }
+Day rollover is a method on `TaskService`, not a separate service. It:
+1. Finds all tasks planned before today in active regions (morning/afternoon/evening) with status todo or inProgress.
+2. Calls `deferToBacklog()` on each — sets region=backlog, bucket=none, status=deferred.
+3. Is idempotent — calling twice is safe (already-deferred tasks are filtered out).
+4. Returns the count of tasks moved.
 
-    nonisolated func updateTask(_ task: Task) throws {
-        let context = container
-        context.insert(task)
-        try context.save()
-    }
+### NotificationService (Phase 3)
 
-    nonisolated func deleteTask(_ taskID: UUID) throws {
-        let context = container
-        // Soft delete or hard delete based on requirements
-        if let task = try context.fetch(FetchDescriptor<Task>()).first(where: { $0.id == taskID }) {
-            context.delete(task)
-            try context.save()
-        }
-    }
-
-    nonisolated func fetchTasks(
-        for date: Date,
-        in region: Region? = nil
-    ) throws -> [Task] {
-        var descriptor = FetchDescriptor<Task>()
-        let startOfDay = date.startOfDay
-        let endOfDay = date.endOfDay
-
-        descriptor.predicate = #Predicate<Task> { task in
-            task.plannedDate >= startOfDay && task.plannedDate <= endOfDay
-        }
-
-        if let region = region {
-            descriptor.predicate = #Predicate<Task> { task in
-                task.plannedDate >= startOfDay &&
-                task.plannedDate <= endOfDay &&
-                task.region == region
-            }
-        }
-
-        descriptor.sortBy = [
-            SortDescriptor(\.isSticky, order: .reverse),
-            SortDescriptor(\.bucket),
-            SortDescriptor(\.order)
-        ]
-
-        return try container.fetch(descriptor)
-    }
-
-    // MARK: - Business Logic
-
-    nonisolated func validateBucketLimit(
-        region: Region,
-        bucket: TaskBucket,
-        context: ModelContext
-    ) throws {
-        guard bucket != .none else { return }
-
-        let count = try context.fetch(FetchDescriptor<Task>())
-            .filter { $0.region == region && $0.bucket == bucket && $0.status != .done }
-            .count
-
-        if count >= bucket.maxCount {
-            throw TaskServiceError.bucketFull(bucket)
-        }
-    }
-
-    nonisolated func moveTask(
-        _ taskID: UUID,
-        to region: Region
-    ) throws {
-        guard let task = try fetchTask(taskID) else {
-            throw TaskServiceError.notFound
-        }
-        task.region = region
-        try updateTask(task)
-    }
-}
-
-enum TaskServiceError: LocalizedError {
-    case bucketFull(TaskBucket)
-    case notFound
-    case invalidOperation(String)
-
-    var errorDescription: String? {
-        switch self {
-        case .bucketFull(let bucket):
-            return "Cannot add more tasks to \(bucket.displayName)"
-        case .notFound:
-            return "Task not found"
-        case .invalidOperation(let message):
-            return message
-        }
-    }
-}
-```
-
-### DayRolloverService
-
-Manages automatic daily reset and task carryover:
-
-```swift
-actor DayRolloverService {
-    private let taskService: TaskService
-    private let container: ModelContext
-
-    nonisolated func performDayRollover() async throws {
-        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date())!.startOfDay
-        let yesterdaysTasks = try taskService.fetchTasks(for: yesterday)
-
-        let incompleteTasks = yesterdaysTasks.filter {
-            $0.status != .done && $0.autoCarry
-        }
-
-        for task in incompleteTasks {
-            var carriedTask = task
-            carriedTask.plannedDate = Date().startOfDay
-            try taskService.createTask(carriedTask)
-        }
-    }
-}
-```
-
-### NotificationService
-
-Handles local notifications (no remote/push notifications in MVP):
-
-```swift
-actor NotificationService {
-    nonisolated func scheduleNotification(
-        for task: Task,
-        at time: Date
-    ) async throws {
-        let content = UNMutableNotificationContent()
-        content.title = task.title
-        content.body = task.notes ?? "Complete this task"
-        content.sound = .default
-
-        let calendar = Calendar.current
-        let components = calendar.dateComponents([.hour, .minute], from: time)
-        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
-
-        let request = UNNotificationRequest(identifier: task.id.uuidString, content: content, trigger: trigger)
-        try await UNUserNotificationCenter.current().add(request)
-    }
-
-    nonisolated func cancelNotification(for taskID: UUID) {
-        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [taskID.uuidString])
-    }
-}
-```
+Not implemented in MVP. Will handle local notifications via `UNUserNotificationCenter`.
 
 ---
 

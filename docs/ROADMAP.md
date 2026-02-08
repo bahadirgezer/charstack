@@ -9,7 +9,7 @@ A minimal daily task manager built with SwiftUI and SwiftData on iOS 17+.
 | Phase | Version | Duration | Status | Focus |
 |-------|---------|----------|--------|-------|
 | Phase 0 | N/A | Completed | ✅ Complete | Foundation & Planning |
-| Phase 1 | v0.1.0 | 2-3 weeks | 📋 Pending | MVP Development |
+| Phase 1 | v0.1.0 | 2-3 weeks | 🚧 In Progress | MVP Development |
 | Phase 2 | v0.5.0 | 1 week | 📋 Pending | CloudKit Sync & Calendar |
 | Phase 3 | v0.8.0 | 1 week | 📋 Pending | Notifications & Settings |
 | Phase 4 | v1.0.0 | 1-2 weeks | 📋 Pending | Polish & App Store Launch |
@@ -50,49 +50,50 @@ A minimal daily task manager built with SwiftUI and SwiftData on iOS 17+.
 
 The MVP focuses on the core 1-3-5 daily task management experience with four regions and day rollover.
 
-### Week 1: Data Layer & Core Models
+### Week 1: Data Layer & Core Models ✅ COMPLETE
 
 **Objective:** Establish persistent data storage and business logic foundation
 
-- [ ] SwiftData Setup & Configuration
-  - [ ] App delegate/SwiftData container initialization
-  - [ ] Model container setup with migration strategy
-  - [ ] Error handling & data persistence validation
+- [x] SwiftData Setup & Configuration
+  - [x] App delegate/SwiftData container initialization
+  - [x] Model container setup with migration strategy
+  - [x] Error handling & data persistence validation
 
-- [ ] Task Model Definition
-  - [ ] Task struct with properties: id, title, description, priority (1/3/5), region, dateCreated, dateCompleted, status
-  - [ ] Codable conformance for future sync/export
-  - [ ] Index definitions for efficient queries
+- [x] Task Model Definition
+  - [x] CharstackTask @Model class with properties: identifier, title, notes, region, bucket, status, plannedDate, sortOrder, createdAt, updatedAt, completedAt
+  - [x] Codable-ready raw value enums for future sync/export
+  - [x] Sort descriptors for efficient queries
 
-- [ ] Enums & Constants
-  - [ ] TaskRegion enum (Morning, Afternoon, Evening, Backlog)
-  - [ ] TaskStatus enum (pending, completed, deferred)
-  - [ ] TaskPriority enum (one, three, five)
-  - [ ] Constants file for colors, spacing, animations
+- [x] Enums & Constants
+  - [x] Region enum (Morning, Afternoon, Evening, Backlog)
+  - [x] TaskStatus enum (todo, inProgress, done, deferred)
+  - [x] TaskBucket enum (must, complementary, misc, none)
+  - [ ] Constants file for colors, spacing, animations (deferred to Week 2 — UI layer)
 
-- [ ] TaskService (Repository Pattern)
-  - [ ] CRUD operations (create, read, update, delete tasks)
-  - [ ] Query methods (fetch by date, region, status)
-  - [ ] 1-3-5 constraint validation (max 1, 3, 5 tasks per region)
-  - [ ] Batch operations for day rollover
+- [x] TaskService (Repository Pattern)
+  - [x] CRUD operations (create, read, update, delete tasks)
+  - [x] Query methods (fetch by date, region, status, backlog, single task by ID)
+  - [x] 1-3-5 constraint validation (max 1, 3, 5 tasks per region)
+  - [x] Day rollover batch operation (moves incomplete past tasks to backlog)
 
-- [ ] Unit Tests (Target: >80% data layer coverage)
-  - [ ] Task model tests
-  - [ ] TaskService constraint validation tests
-  - [ ] Date handling & timezone tests
-  - [ ] SwiftData integration tests
+- [x] Unit Tests (38 tests, all passing)
+  - [x] CharstackTask model tests (initialization, accessors, completion, deferral, overdue)
+  - [x] Region, TaskBucket, TaskStatus enum tests
+  - [x] TaskService constraint validation tests (per region, per day, completed exclusion)
+  - [x] Date handling tests (startOfDay, endOfDay, isSameDay, addingDays)
+  - [x] SwiftData integration tests (in-memory container, CRUD round-trips)
 
-- [ ] 1-3-5 Constraint Engine
-  - [ ] Validation logic preventing > 1 task in Morning region
-  - [ ] Validation logic preventing > 3 tasks in Afternoon region
-  - [ ] Validation logic preventing > 5 tasks in Evening region
-  - [ ] Backlog acceptance of overflow tasks
-  - [ ] Error feedback for constraint violations
+- [x] 1-3-5 Constraint Engine
+  - [x] Validation logic preventing > 1 Must task per region
+  - [x] Validation logic preventing > 3 Complementary tasks per region
+  - [x] Validation logic preventing > 5 Misc tasks per region
+  - [x] Backlog is unconstrained (no limit)
+  - [x] Error feedback for constraint violations (TaskServiceError.bucketFull)
 
 **Deliverables:**
-- Stable SwiftData schema with no migration issues
-- TaskService fully tested and documented
-- Constraint engine preventing invalid states
+- ✅ Stable SwiftData schema with no migration issues
+- ✅ TaskService fully tested and documented
+- ✅ Constraint engine preventing invalid states
 
 ---
 
@@ -649,5 +650,5 @@ Use this checklist for each major release:
 
 ---
 
-**Last Updated:** February 8, 2026
+**Last Updated:** February 8, 2026 (Week 1 complete)
 **Maintained By:** Bahadır Gezer
