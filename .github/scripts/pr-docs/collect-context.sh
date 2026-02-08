@@ -14,6 +14,31 @@ HEAD_COMMIT="$PR_HEAD_SHA"
 BASE_COMMIT="origin/$PR_BASE_REF"
 PUSH_CONTEXT_AVAILABLE="false"
 
+truncate_to_limits() {
+  local input_file="$1"
+  local output_file="$2"
+  local max_lines="$3"
+  local max_bytes="$4"
+
+  if [[ ! -f "$input_file" ]]; then
+    printf 'N/A\n' > "$output_file"
+    return
+  fi
+
+  sed -n "1,${max_lines}p" "$input_file" | head -c "$max_bytes" > "$output_file"
+
+  if [[ ! -s "$output_file" ]]; then
+    printf 'N/A\n' > "$output_file"
+  fi
+}
+
+ensure_non_empty() {
+  local file="$1"
+  if [[ ! -s "$file" ]]; then
+    printf 'N/A\n' > "$file"
+  fi
+}
+
 # Ensure base branch is present.
 git fetch --no-tags --depth=200 origin "$PR_BASE_REF"
 
@@ -40,20 +65,33 @@ fi
 
 # Full PR context (base...head)
 git diff --shortstat "$BASE_COMMIT...$HEAD_COMMIT" > "$PR_DOCS_DIR/full_shortstat.txt" || true
-git diff --stat=150 "$BASE_COMMIT...$HEAD_COMMIT" > "$PR_DOCS_DIR/full_diff_stat.txt" || true
-git log --no-merges --pretty='- %h %s' "$BASE_COMMIT..$HEAD_COMMIT" > "$PR_DOCS_DIR/full_commits.txt" || true
+git diff --stat=140 "$BASE_COMMIT...$HEAD_COMMIT" > "$PR_DOCS_DIR/full_diff_stat_raw.txt" || true
+git log --no-merges --pretty='- %h %s' "$BASE_COMMIT..$HEAD_COMMIT" > "$PR_DOCS_DIR/full_commits_raw.txt" || true
+git diff --name-status "$BASE_COMMIT...$HEAD_COMMIT" > "$PR_DOCS_DIR/full_name_status_raw.txt" || true
 
-# Keep patch context bounded for prompt quality and API limits.
+# Send bounded patch context to control token usage.
 git diff "$BASE_COMMIT...$HEAD_COMMIT" -- \
   '*.swift' '*.md' '*.yml' '*.yaml' '*.json' '*.plist' '*.xcodeproj/project.pbxproj' \
   > "$PR_DOCS_DIR/full_diff_patch_raw.txt" || true
-sed -n '1,2200p' "$PR_DOCS_DIR/full_diff_patch_raw.txt" > "$PR_DOCS_DIR/full_diff_patch.txt"
-rm -f "$PR_DOCS_DIR/full_diff_patch_raw.txt"
 
-# Push delta context (before..head), primarily useful for synchronize events.
+truncate_to_limits "$PR_DOCS_DIR/full_diff_stat_raw.txt" "$PR_DOCS_DIR/full_diff_stat.txt" 140 12000
+truncate_to_limits "$PR_DOCS_DIR/full_commits_raw.txt" "$PR_DOCS_DIR/full_commits.txt" 90 9000
+truncate_to_limits "$PR_DOCS_DIR/full_name_status_raw.txt" "$PR_DOCS_DIR/full_name_status.txt" 180 10000
+truncate_to_limits "$PR_DOCS_DIR/full_diff_patch_raw.txt" "$PR_DOCS_DIR/full_diff_patch.txt" 260 22000
+
+rm -f \
+  "$PR_DOCS_DIR/full_diff_stat_raw.txt" \
+  "$PR_DOCS_DIR/full_commits_raw.txt" \
+  "$PR_DOCS_DIR/full_name_status_raw.txt" \
+  "$PR_DOCS_DIR/full_diff_patch_raw.txt"
+
+ensure_non_empty "$PR_DOCS_DIR/full_shortstat.txt"
+
+# Push delta context (before..head), useful for synchronize events.
 printf 'N/A\n' > "$PR_DOCS_DIR/push_shortstat.txt"
 printf 'N/A\n' > "$PR_DOCS_DIR/push_diff_stat.txt"
 printf 'N/A\n' > "$PR_DOCS_DIR/push_commits.txt"
+printf 'N/A\n' > "$PR_DOCS_DIR/push_name_status.txt"
 printf 'N/A\n' > "$PR_DOCS_DIR/push_diff_patch.txt"
 
 if [[ "$PR_ACTION" == "synchronize" && -n "${PR_BEFORE_SHA:-}" && "$PR_BEFORE_SHA" != "$ZERO_SHA" ]]; then
@@ -63,15 +101,28 @@ if [[ "$PR_ACTION" == "synchronize" && -n "${PR_BEFORE_SHA:-}" && "$PR_BEFORE_SH
 
   if git cat-file -e "${PR_BEFORE_SHA}^{commit}" 2>/dev/null; then
     PUSH_CONTEXT_AVAILABLE="true"
+
     git diff --shortstat "${PR_BEFORE_SHA}..$HEAD_COMMIT" > "$PR_DOCS_DIR/push_shortstat.txt" || true
-    git diff --stat=150 "${PR_BEFORE_SHA}..$HEAD_COMMIT" > "$PR_DOCS_DIR/push_diff_stat.txt" || true
-    git log --no-merges --pretty='- %h %s' "${PR_BEFORE_SHA}..$HEAD_COMMIT" > "$PR_DOCS_DIR/push_commits.txt" || true
+    git diff --stat=140 "${PR_BEFORE_SHA}..$HEAD_COMMIT" > "$PR_DOCS_DIR/push_diff_stat_raw.txt" || true
+    git log --no-merges --pretty='- %h %s' "${PR_BEFORE_SHA}..$HEAD_COMMIT" > "$PR_DOCS_DIR/push_commits_raw.txt" || true
+    git diff --name-status "${PR_BEFORE_SHA}..$HEAD_COMMIT" > "$PR_DOCS_DIR/push_name_status_raw.txt" || true
 
     git diff "${PR_BEFORE_SHA}..$HEAD_COMMIT" -- \
       '*.swift' '*.md' '*.yml' '*.yaml' '*.json' '*.plist' '*.xcodeproj/project.pbxproj' \
       > "$PR_DOCS_DIR/push_diff_patch_raw.txt" || true
-    sed -n '1,1600p' "$PR_DOCS_DIR/push_diff_patch_raw.txt" > "$PR_DOCS_DIR/push_diff_patch.txt"
-    rm -f "$PR_DOCS_DIR/push_diff_patch_raw.txt"
+
+    truncate_to_limits "$PR_DOCS_DIR/push_diff_stat_raw.txt" "$PR_DOCS_DIR/push_diff_stat.txt" 100 8000
+    truncate_to_limits "$PR_DOCS_DIR/push_commits_raw.txt" "$PR_DOCS_DIR/push_commits.txt" 40 4500
+    truncate_to_limits "$PR_DOCS_DIR/push_name_status_raw.txt" "$PR_DOCS_DIR/push_name_status.txt" 120 6500
+    truncate_to_limits "$PR_DOCS_DIR/push_diff_patch_raw.txt" "$PR_DOCS_DIR/push_diff_patch.txt" 160 15000
+
+    rm -f \
+      "$PR_DOCS_DIR/push_diff_stat_raw.txt" \
+      "$PR_DOCS_DIR/push_commits_raw.txt" \
+      "$PR_DOCS_DIR/push_name_status_raw.txt" \
+      "$PR_DOCS_DIR/push_diff_patch_raw.txt"
+
+    ensure_non_empty "$PR_DOCS_DIR/push_shortstat.txt"
   fi
 fi
 

@@ -43,13 +43,13 @@ jobs:
           fi
 
       - name: Collect PR context
-        run: .github/scripts/pr-docs-collect.sh
+        run: .github/scripts/pr-docs/collect-context.sh
 
       - name: Generate PR docs with Gemini
         id: ai
         run: |
           set +e
-          .github/scripts/pr-docs-generate-ai.sh
+          .github/scripts/pr-docs/generate-gemini.sh
           status=$?
           set -e
 
@@ -68,11 +68,11 @@ jobs:
 
       - name: Build fallback PR docs
         if: steps.ai.outputs.mode == 'fallback'
-        run: .github/scripts/pr-docs-build-fallback.sh
+        run: .github/scripts/pr-docs/build-fallback.sh
 
       - name: Merge docs into PR body
         id: merge
-        run: .github/scripts/pr-docs-merge-body.sh
+        run: .github/scripts/pr-docs/merge-body.sh
 
       - name: Update PR description
         if: steps.merge.outputs.changed == 'true'
