@@ -1,0 +1,39 @@
+name: Lint
+
+on:
+  pull_request:
+    branches: [develop, main]
+
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  swift-lint:
+    name: Swift Lint & Format
+    runs-on: [self-hosted, macOS, ARM64, bgpro-charstack]
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Ensure tools are installed
+        run: |
+          command -v swift-format >/dev/null 2>&1 || brew install swift-format
+          command -v swiftlint >/dev/null 2>&1 || brew install swiftlint
+          echo "swift-format: $(swift-format --version 2>&1 || echo 'unknown')"
+          echo "swiftlint: $(swiftlint version)"
+
+      - name: swift-format (deterministic formatting)
+        run: |
+          FILES="$(git ls-files '*.swift')"
+          if [[ -z "$FILES" ]]; then
+            echo "No Swift files found."
+            exit 0
+          fi
+          echo "$FILES" | xargs swift-format lint --strict --configuration .swift-format
+
+      - name: SwiftLint (strict rules)
+        run: |
+          swiftlint lint --strict --reporter github-actions-logging

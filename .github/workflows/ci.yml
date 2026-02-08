@@ -1,28 +1,55 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - main
-      - develop
   pull_request:
-    branches:
-      - main
-      - develop
+    branches: [develop, main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build-and-test:
-    runs-on: macos-14
+  build-test:
+    name: Build & Test
+    runs-on: [self-hosted, macOS, ARM64, bgpro-charstack]
+    timeout-minutes: 30
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v6
 
-      - name: Select Xcode 16
-        run: sudo xcode-select -s /Applications/Xcode_16.app
+      - name: Select Xcode
+        if: vars.XCODE_APP_PATH != ''
+        run: |
+          sudo xcode-select -s "${{ vars.XCODE_APP_PATH }}"
+          xcodebuild -version
 
-      - name: Build
-        run: xcodebuild build -scheme Charstack -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.0' -skipPackagePluginValidation
+      - name: Read VERSION
+        id: ver
+        run: |
+          V="$(tr -d '[:space:]' < VERSION)"
+          if ! [[ "$V" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::VERSION must be x.y.z — got '$V'"
+            exit 1
+          fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
 
-      - name: Test
-        run: xcodebuild test -scheme Charstack -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.0' -skipPackagePluginValidation
+      - name: Resolve Xcode project
+        id: xcode
+        run: .github/scripts/resolve-xcode-project.sh
+        env:
+          INPUT_WORKSPACE: ${{ vars.XCODE_WORKSPACE }}
+          INPUT_PROJECT: ${{ vars.XCODE_PROJECT }}
+          INPUT_SCHEME: ${{ vars.XCODE_SCHEME }}
+
+      - name: Build & Test
+        run: |
+          xcodebuild \
+            "${{ steps.xcode.outputs.flag }}" "${{ steps.xcode.outputs.path }}" \
+            -scheme "${{ steps.xcode.outputs.scheme }}" \
+            -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,name=iPhone 17 Pro" \
+            -configuration Debug \
+            MARKETING_VERSION="${{ steps.ver.outputs.version }}" \
+            CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
+            clean test
