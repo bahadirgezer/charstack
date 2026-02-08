@@ -48,7 +48,7 @@ jobs:
             "${{ steps.xcode.outputs.flag }}" "${{ steps.xcode.outputs.path }}" \
             -scheme "${{ steps.xcode.outputs.scheme }}" \
             -sdk iphonesimulator \
-            -destination "generic/platform=iOS Simulator" \
+            -destination "platform=iOS Simulator,name=iPhone 17 Pro" \
             -configuration Debug \
             MARKETING_VERSION="${{ steps.ver.outputs.version }}" \
             CURRENT_PROJECT_VERSION="${{ github.run_number }}" \

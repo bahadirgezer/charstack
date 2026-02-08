@@ -12,9 +12,9 @@ Charstack is a minimal iOS daily task manager built around **four day regions** 
 - **Architecture**: MVVM with lightweight coordinator navigation
 
 ## Commands
-- **Build**: `xcodebuild build -scheme Charstack -destination 'platform=iOS Simulator,name=iPhone 16'`
-- **Test**: `xcodebuild test -scheme Charstack -destination 'platform=iOS Simulator,name=iPhone 16'`
-- **Lint**: `swiftlint` (once configured)
+- **Build**: `xcodebuild build -scheme Charstack -destination 'platform=iOS Simulator,name=iPhone 17 Pro'`
+- **Test**: `xcodebuild test -scheme Charstack -destination 'platform=iOS Simulator,name=iPhone 17 Pro'`
+- **Lint**: `swiftlint` 
 
 ## Code Style
 - SwiftLint enforced (see `.swiftlint.yml` when added)
