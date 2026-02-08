@@ -1,0 +1,150 @@
+# SwiftLint Configuration — Charstack
+
+# ─── Paths ───────────────────────────────────────────────────────────
+included:
+  - Charstack
+
+excluded:
+  - DerivedData
+  - build
+  - Pods
+  - .build
+  - "**/.build"
+
+# ─── Disabled rules ─────────────────────────────────────────────────
+# Only disable rules with a clear reason.
+disabled_rules:
+  - todo                        # We use TODO/FIXME intentionally
+  - trailing_comma              # swift-format handles this
+
+# ─── Opt-in rules ───────────────────────────────────────────────────
+opt_in_rules:
+  # Safety
+  - empty_count
+  - empty_string
+  - fatal_error_message
+  - first_where
+  - last_where
+  - force_unwrapping
+  - implicitly_unwrapped_optional
+  - legacy_multiple
+  - legacy_objc_type
+  - legacy_random
+
+  # Clarity
+  - closure_spacing
+  - contains_over_filter_count
+  - contains_over_first_not_nil
+  - contains_over_range_nil_comparison
+  - discouraged_assert
+  - discouraged_none_name
+  - discouraged_object_literal
+  - explicit_init
+  - fallthrough
+  - flatmap_over_map_reduce
+  - identical_operands
+  - joined_default_parameter
+  - modifier_order
+  - number_separator
+  - operator_usage_whitespace
+  - overridden_super_call
+  - pattern_matching_keywords
+  - prefer_self_in_static_references
+  - prefer_self_type_over_type_of_self
+  - private_action
+  - private_outlet
+  - prohibited_super_call
+  - redundant_nil_coalescing
+  - redundant_type_annotation
+  - return_value_from_void_function
+  - sorted_first_last
+  - static_over_final_class
+  - toggle_bool
+  - unavailable_function
+  - unneeded_parentheses_in_closure_argument
+  - unowned_variable_capture
+  - vertical_whitespace_closing_braces
+  - yoda_condition
+
+  # Concurrency (Swift 6)
+  - unhandled_throwing_task
+
+# ─── Rule severities (error = build failure) ────────────────────────
+force_cast:
+  severity: error
+
+force_try:
+  severity: error
+
+force_unwrapping:
+  severity: warning              # Start as warning, tighten later
+
+implicitly_unwrapped_optional:
+  severity: warning
+  mode: all_except_iboutlets
+
+# ─── Complexity thresholds ──────────────────────────────────────────
+cyclomatic_complexity:
+  warning: 10
+  error: 20
+  ignores_case_statements: true
+
+function_body_length:
+  warning: 60
+  error: 100
+
+type_body_length:
+  warning: 300
+  error: 500
+
+file_length:
+  warning: 500
+  error: 1000
+  ignore_comment_only_lines: true
+
+# ─── Naming ─────────────────────────────────────────────────────────
+type_name:
+  min_length:
+    warning: 3
+    error: 0
+  max_length:
+    warning: 50
+    error: 70
+  allowed_symbols: []
+
+identifier_name:
+  min_length:
+    warning: 2
+    error: 1
+  max_length:
+    warning: 50
+    error: 70
+  excluded:
+    - id
+    - ok
+    - to
+    - x
+    - y
+    - i
+    - j
+
+# ─── Line length ────────────────────────────────────────────────────
+line_length:
+  warning: 120
+  error: 200
+  ignores_urls: true
+  ignores_comments: false
+  ignores_interpolated_strings: true
+
+# ─── Nesting ────────────────────────────────────────────────────────
+nesting:
+  type_level:
+    warning: 2
+  function_level:
+    warning: 3
+
+# ─── Misc ───────────────────────────────────────────────────────────
+number_separator:
+  minimum_length: 5
+
+reporter: xcode
