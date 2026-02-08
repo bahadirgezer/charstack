@@ -6,11 +6,6 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		3F020E072F39448500BEA777 /* SwiftLintFramework in Frameworks */ = {isa = PBXBuildFile; productRef = 3F020E062F39448500BEA777 /* SwiftLintFramework */; };
-		3F020E092F39448500BEA777 /* swiftlint in Frameworks */ = {isa = PBXBuildFile; productRef = 3F020E082F39448500BEA777 /* swiftlint */; };
-/* End PBXBuildFile section */
-
 /* Begin PBXContainerItemProxy section */
 		3FAC33502F3A000000E3D3F4 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -49,8 +44,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3F020E072F39448500BEA777 /* SwiftLintFramework in Frameworks */,
-				3F020E092F39448500BEA777 /* swiftlint in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -105,8 +98,6 @@
 			);
 			name = Charstack;
 			packageProductDependencies = (
-				3F020E062F39448500BEA777 /* SwiftLintFramework */,
-				3F020E082F39448500BEA777 /* swiftlint */,
 			);
 			productName = Charstack;
 			productReference = 3FAC33352F1D1F7F00E3D3F4 /* Charstack.app */;
@@ -499,16 +490,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		3F020E062F39448500BEA777 /* SwiftLintFramework */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 3F020E052F39448500BEA777 /* XCRemoteSwiftPackageReference "SwiftLint" */;
-			productName = SwiftLintFramework;
-		};
-		3F020E082F39448500BEA777 /* swiftlint */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 3F020E052F39448500BEA777 /* XCRemoteSwiftPackageReference "SwiftLint" */;
-			productName = swiftlint;
-		};
 		3F020E0A2F39448C00BEA777 /* SwiftLintBuildToolPlugin */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 3F020E052F39448500BEA777 /* XCRemoteSwiftPackageReference "SwiftLint" */;

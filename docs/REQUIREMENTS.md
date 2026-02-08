@@ -451,7 +451,7 @@
 #### NFR-2.4.1: Minimum iOS Version
 - **Requirement**: iOS 26.0 minimum.
 - **Rationale**: Enables SwiftData (no CoreData), latest SwiftUI features, Swift 6 support.
-- **Testing**: Deploy to iOS 26.0 simulator and iPhone 12 or newer device.
+- **Testing**: Deploy to iOS 26.0 simulator and iPhone 17 Pro or newer device.
 
 #### NFR-2.4.2: Device Support
 - **Primary**: iPhone (all current and prior-generation models).
