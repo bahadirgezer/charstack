@@ -2,7 +2,7 @@ name: PR Documentation
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened, synchronize, reopened, closed]
 
 permissions:
   pull-requests: write
@@ -25,11 +25,15 @@ jobs:
         id: diff
         env:
           BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           git fetch origin "$BASE_BRANCH" --depth=100
-          DIFF_STAT="$(git diff --stat "origin/$BASE_BRANCH"...HEAD)"
-          DIFF_CONTENT="$(git diff "origin/$BASE_BRANCH"...HEAD -- '*.swift' '*.yml' '*.json' '*.md' | head -3000)"
-          COMMITS="$(git log --oneline "origin/$BASE_BRANCH"..HEAD)"
+          PR_HEAD_REF="refs/pull/${PR_NUMBER}/head"
+          git fetch origin "$PR_HEAD_REF" --depth=1
+          PR_HEAD="$(git rev-parse FETCH_HEAD)"
+          DIFF_STAT="$(git diff --stat "origin/$BASE_BRANCH"...$PR_HEAD)"
+          DIFF_CONTENT="$(git diff "origin/$BASE_BRANCH"...$PR_HEAD -- '*.swift' '*.yml' '*.json' '*.md' | head -3000)"
+          COMMITS="$(git log --oneline "origin/$BASE_BRANCH".."$PR_HEAD")"
 
           # Write to temp files to avoid shell quoting issues
           echo "$DIFF_STAT" > /tmp/diff_stat.txt
