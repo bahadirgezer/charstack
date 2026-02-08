@@ -10,10 +10,10 @@ enum Region: String, Codable, CaseIterable, Identifiable, Comparable, Sendable {
     case evening
     case backlog
 
-    var id: String { rawValue }
+    nonisolated var id: String { rawValue }
 
     /// Human-readable name for display in UI.
-    var displayName: String {
+    nonisolated var displayName: String {
         switch self {
         case .morning: "Morning"
         case .afternoon: "Afternoon"
@@ -23,7 +23,7 @@ enum Region: String, Codable, CaseIterable, Identifiable, Comparable, Sendable {
     }
 
     /// SF Symbol name representing the region.
-    var systemImageName: String {
+    nonisolated var systemImageName: String {
         switch self {
         case .morning: "sunrise.fill"
         case .afternoon: "sun.max.fill"
@@ -33,7 +33,7 @@ enum Region: String, Codable, CaseIterable, Identifiable, Comparable, Sendable {
     }
 
     /// Sort order for consistent display (Morning first, Backlog last).
-    var sortOrder: Int {
+    nonisolated var sortOrder: Int {
         switch self {
         case .morning: 0
         case .afternoon: 1
@@ -44,16 +44,16 @@ enum Region: String, Codable, CaseIterable, Identifiable, Comparable, Sendable {
 
     /// Whether this region enforces the 1-3-5 constraint.
     /// Backlog is unconstrained by default.
-    var isConstrained: Bool {
+    nonisolated var isConstrained: Bool {
         self != .backlog
     }
 
     /// The three active (non-backlog) regions, in order.
-    static var activeRegions: [Self] {
+    nonisolated static var activeRegions: [Self] {
         [.morning, .afternoon, .evening]
     }
 
-    static func < (lhs: Self, rhs: Self) -> Bool {
+    nonisolated static func < (lhs: Self, rhs: Self) -> Bool {
         lhs.sortOrder < rhs.sortOrder
     }
 }

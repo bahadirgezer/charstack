@@ -10,10 +10,10 @@ enum TaskStatus: String, Codable, CaseIterable, Identifiable, Sendable {
     case done
     case deferred
 
-    var id: String { rawValue }
+    nonisolated var id: String { rawValue }
 
     /// Human-readable name for display in UI.
-    var displayName: String {
+    nonisolated var displayName: String {
         switch self {
         case .todo: "To Do"
         case .inProgress: "In Progress"
@@ -23,7 +23,7 @@ enum TaskStatus: String, Codable, CaseIterable, Identifiable, Sendable {
     }
 
     /// Whether this status represents an incomplete task (eligible for rollover).
-    var isIncomplete: Bool {
+    nonisolated var isIncomplete: Bool {
         switch self {
         case .todo, .inProgress: true
         case .done, .deferred: false
@@ -32,7 +32,7 @@ enum TaskStatus: String, Codable, CaseIterable, Identifiable, Sendable {
 
     /// Whether this status counts toward the 1-3-5 bucket limit.
     /// Only active (non-done, non-deferred) tasks count against limits.
-    var countsTowardBucketLimit: Bool {
+    nonisolated var countsTowardBucketLimit: Bool {
         switch self {
         case .todo, .inProgress: true
         case .done, .deferred: false

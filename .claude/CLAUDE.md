@@ -1,14 +1,14 @@
 # Charstack — Claude Context (Repo-Level)
 
 ## Project Overview
-Charstack is a minimal iOS daily task manager built around **four day regions** (Morning, Afternoon, Evening, Backlog) using a **1-3-5 rule** per active region. The app is SwiftUI-only, targeting iOS 17+ with SwiftData persistence.
+Charstack is a minimal iOS daily task manager built around **four day regions** (Morning, Afternoon, Evening, Backlog) using a **1-3-5 rule** per active region. The app is SwiftUI-only, targeting iOS 26+ with SwiftData persistence.
 
 ## Tech Stack
 - **Language**: Swift 6.0 (strict concurrency)
 - **UI**: SwiftUI (100%, no UIKit)
 - **Persistence**: SwiftData (CloudKit sync in Phase 2)
 - **Auth (Phase 3+)**: Sign in with Apple + Google Sign-In via BaaS (TBD: Firebase or Supabase)
-- **Minimum iOS**: 17.0
+- **Minimum iOS**: 26.0
 - **Architecture**: MVVM with lightweight coordinator navigation
 
 ## Commands

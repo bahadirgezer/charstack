@@ -2,14 +2,27 @@ name: Release
 
 on:
   push:
-    branches: [main]
-  workflow_dispatch: {}
+    branches: [master, develop]
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump (default: auto by branch)"
+        type: choice
+        options:
+          - auto
+          - patch
+          - minor
+          - none
+        default: auto
+      version_override:
+        description: "Override release version (x.y.z)"
+        required: false
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-main
+  group: release-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -31,48 +44,92 @@ jobs:
           xcodebuild -version
 
       # ── Check if VERSION changed (skip release if not) ──
-      - name: Check VERSION changed
-        id: changed
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "proceed=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          BEFORE="${{ github.event.before }}"
-          if [[ "$BEFORE" == "0000000000000000000000000000000000000000" ]]; then
-            echo "proceed=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          if git diff --name-only "$BEFORE" "${{ github.sha }}" | grep -qx "VERSION"; then
-            echo "proceed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "proceed=false" >> "$GITHUB_OUTPUT"
-            echo "No VERSION change — skipping release."
-          fi
-
-      # ── Read & validate VERSION ──
-      - name: Read VERSION
-        if: steps.changed.outputs.proceed == 'true'
+      # ── Compute release version ──
+      - name: Compute version
         id: ver
         run: |
-          V="$(tr -d '[:space:]' < VERSION)"
-          if ! [[ "$V" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::VERSION must be x.y.z — got '$V'"
+          BASE="$(tr -d '[:space:]' < VERSION)"
+          if ! [[ "$BASE" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::VERSION must be x.y.z — got '$BASE'"
             exit 1
           fi
-          TAG="v$V"
+
+          REF_NAME="${{ github.ref_name }}"
+          INPUT_BUMP="${{ github.event.inputs.bump || 'auto' }}"
+          INPUT_OVERRIDE="${{ github.event.inputs.version_override || '' }}"
+
+          if [[ -n "$INPUT_OVERRIDE" ]]; then
+            if ! [[ "$INPUT_OVERRIDE" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "::error::version_override must be x.y.z — got '$INPUT_OVERRIDE'"
+              exit 1
+            fi
+            FINAL_VERSION="$INPUT_OVERRIDE"
+          else
+            BUMP="$INPUT_BUMP"
+            if [[ "$BUMP" == "auto" ]]; then
+              case "$REF_NAME" in
+                develop) BUMP="patch" ;;
+                master) BUMP="minor" ;;
+                *)
+                  echo "::error::Auto bump is only supported on develop/master."
+                  exit 1
+                  ;;
+              esac
+            fi
+
+            LATEST_TAG="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -1 || true)"
+            LATEST_VERSION="${LATEST_TAG#v}"
+            export BASE
+            export LATEST="$LATEST_VERSION"
+            export BUMP
+
+            FINAL_VERSION="$(python3 - <<'PY'
+import os, re
+
+base = os.environ["BASE"]
+latest = os.environ.get("LATEST", "")
+bump = os.environ["BUMP"]
+
+def parse(v):
+    m = re.match(r"^(\d+)\.(\d+)\.(\d+)$", v)
+    if not m:
+        return None
+    return tuple(int(x) for x in m.groups())
+
+base_t = parse(base)
+latest_t = parse(latest) if latest else None
+
+ref = base_t
+if latest_t and latest_t > ref:
+    ref = latest_t
+
+if bump == "none":
+    out = ref
+elif bump == "patch":
+    out = (ref[0], ref[1], ref[2] + 1)
+elif bump == "minor":
+    out = (ref[0], ref[1] + 1, 0)
+elif bump == "major":
+    out = (ref[0] + 1, 0, 0)
+else:
+    raise SystemExit(f"Unsupported bump: {bump}")
+
+print("{}.{}.{}".format(*out))
+PY
+            )"
+          fi
+
+          TAG="v$FINAL_VERSION"
           if git ls-remote --tags origin "refs/tags/$TAG" | grep -q .; then
             echo "::error::Tag $TAG already exists."
             exit 1
           fi
-          echo "version=$V" >> "$GITHUB_OUTPUT"
+
+          echo "version=$FINAL_VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
       # ── Create & push tag ──
       - name: Create tag
-        if: steps.changed.outputs.proceed == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -81,7 +138,6 @@ jobs:
 
       # ── Build release archive ──
       - name: Resolve Xcode project
-        if: steps.changed.outputs.proceed == 'true'
         id: xcode
         run: .github/scripts/resolve-xcode-project.sh
         env:
@@ -90,7 +146,6 @@ jobs:
           INPUT_SCHEME: ${{ vars.XCODE_SCHEME }}
 
       - name: Build archive
-        if: steps.changed.outputs.proceed == 'true'
         run: |
           mkdir -p build
           xcodebuild \
@@ -103,14 +158,12 @@ jobs:
             clean archive
 
       - name: Zip archive
-        if: steps.changed.outputs.proceed == 'true'
         run: |
           /usr/bin/ditto -c -k --sequesterRsrc --keepParent \
             build/App.xcarchive build/App.xcarchive.zip
 
       # ── Generate changelog from git log ──
       - name: Generate changelog
-        if: steps.changed.outputs.proceed == 'true'
         run: |
           TAG="${{ steps.ver.outputs.tag }}"
           PREV_TAG="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname \
@@ -131,42 +184,47 @@ jobs:
             echo
           } > build/CHANGELOG.md
 
-      # ── AI-enhanced release notes (optional, requires GEMINI_API_KEY secret) ──
+      # ── AI-enhanced release notes (optional, requires GROQ_API_KEY secret) ──
       - name: Generate AI release notes
-        if: steps.changed.outputs.proceed == 'true'
         id: ai_notes
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODEL: groq/compound
         run: |
-          if [[ -z "$GEMINI_API_KEY" ]]; then
-            echo "body=" >> "$GITHUB_OUTPUT"
+          if [[ -z "${GROQ_API_KEY:-}" ]]; then
+            echo "has_notes=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          CHANGELOG="$(cat build/CHANGELOG.md)"
-          BODY="$(curl -s "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$GEMINI_API_KEY" \
-            -H "Content-Type: application/json" \
-            -d "$(jq -n --arg log "$CHANGELOG" '{
-              contents: [{parts: [{text: ("Write concise, user-friendly release notes for an iOS app based on this changelog. Group changes by category (Features, Fixes, Maintenance). Use markdown. Be brief.\n\n" + $log)}]}]
-            }')" | jq -r '.candidates[0].content.parts[0].text // empty')"
+          CHANGELOG_FILE="build/CHANGELOG.md"
+          OUTPUT_FILE="build/RELEASE_NOTES.md"
 
-          if [[ -n "$BODY" ]]; then
-            # Write to file to avoid shell quoting issues
-            echo "$BODY" > build/RELEASE_NOTES.md
+          set +e
+          CHANGELOG_FILE="$CHANGELOG_FILE" OUTPUT_FILE="$OUTPUT_FILE" .github/scripts/pr-docs/generate-release-notes.sh
+          status=$?
+          set -e
+
+          if [[ $status -eq 0 ]]; then
             echo "has_notes=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_notes=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+
+          if [[ $status -eq 42 ]]; then
+            echo "has_notes=false" >> "$GITHUB_OUTPUT"
+            echo "Groq unavailable/rate-limited; using changelog."
+            exit 0
+          fi
+
+          exit $status
 
       # ── Create GitHub Release ──
       - name: Create GitHub Release
-        if: steps.changed.outputs.proceed == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.ver.outputs.tag }}
           name: ${{ steps.ver.outputs.tag }}
-          body_path: ${{ steps.ai_notes.outputs.has_notes == 'true' && 'build/RELEASE_NOTES.md' || '' }}
-          generate_release_notes: ${{ steps.ai_notes.outputs.has_notes != 'true' }}
+          body_path: ${{ steps.ai_notes.outputs.has_notes == 'true' && 'build/RELEASE_NOTES.md' || 'build/CHANGELOG.md' }}
+          generate_release_notes: false
           files: |
             build/App.xcarchive.zip
             build/CHANGELOG.md
