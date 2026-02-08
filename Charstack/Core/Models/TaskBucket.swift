@@ -6,12 +6,12 @@ import Foundation
 /// - **must**: 1 critical task — the single outcome that matters most.
 /// - **complementary**: Up to 3 supporting tasks.
 /// - **misc**: Up to 5 small, low-friction tasks.
-/// - **none**: Unassigned bucket, used for Backlog tasks.
+/// - **unassigned**: Unassigned bucket, used for Backlog tasks.
 enum TaskBucket: String, Codable, CaseIterable, Identifiable, Comparable, Sendable {
     case must
     case complementary
     case misc
-    case none
+    case unassigned = "none"
 
     var id: String { rawValue }
 
@@ -21,7 +21,7 @@ enum TaskBucket: String, Codable, CaseIterable, Identifiable, Comparable, Sendab
         case .must: "Must Do"
         case .complementary: "Complementary"
         case .misc: "Misc"
-        case .none: "Unassigned"
+        case .unassigned: "Unassigned"
         }
     }
 
@@ -31,18 +31,18 @@ enum TaskBucket: String, Codable, CaseIterable, Identifiable, Comparable, Sendab
         case .must: "Must"
         case .complementary: "Comp"
         case .misc: "Misc"
-        case .none: "—"
+        case .unassigned: "—"
         }
     }
 
     /// Maximum number of tasks allowed in this bucket per region.
-    /// Returns `Int.max` for `.none` (Backlog tasks are unconstrained).
+    /// Returns `Int.max` for `.unassigned` (Backlog tasks are unconstrained).
     var maxCount: Int {
         switch self {
         case .must: 1
         case .complementary: 3
         case .misc: 5
-        case .none: Int.max
+        case .unassigned: Int.max
         }
     }
 
@@ -52,21 +52,21 @@ enum TaskBucket: String, Codable, CaseIterable, Identifiable, Comparable, Sendab
         case .must: 0
         case .complementary: 1
         case .misc: 2
-        case .none: 3
+        case .unassigned: 3
         }
     }
 
-    /// The three constrained bucket types (excludes `.none`).
-    static var constrainedBuckets: [TaskBucket] {
+    /// The three constrained bucket types (excludes `.unassigned`).
+    static var constrainedBuckets: [Self] {
         [.must, .complementary, .misc]
     }
 
     /// Total maximum tasks per region under the 1-3-5 rule (1 + 3 + 5 = 9).
     static var totalMaxPerRegion: Int {
-        constrainedBuckets.reduce(0) { $0 + $1.maxCount }
+        Self.constrainedBuckets.reduce(0) { $0 + $1.maxCount }
     }
 
-    static func < (lhs: TaskBucket, rhs: TaskBucket) -> Bool {
+    static func < (lhs: Self, rhs: Self) -> Bool {
         lhs.sortOrder < rhs.sortOrder
     }
 }

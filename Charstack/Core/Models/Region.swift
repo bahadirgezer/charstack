@@ -49,11 +49,11 @@ enum Region: String, Codable, CaseIterable, Identifiable, Comparable, Sendable {
     }
 
     /// The three active (non-backlog) regions, in order.
-    static var activeRegions: [Region] {
+    static var activeRegions: [Self] {
         [.morning, .afternoon, .evening]
     }
 
-    static func < (lhs: Region, rhs: Region) -> Bool {
+    static func < (lhs: Self, rhs: Self) -> Bool {
         lhs.sortOrder < rhs.sortOrder
     }
 }

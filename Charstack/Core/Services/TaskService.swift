@@ -14,7 +14,7 @@ enum TaskServiceError: LocalizedError, Equatable {
 
     var errorDescription: String? {
         switch self {
-        case .bucketFull(let bucket, let region):
+        case let .bucketFull(bucket, region):
             "\(region.displayName) already has the maximum \(bucket.maxCount) \(bucket.displayName) task(s)"
         case .taskNotFound(let identifier):
             "Task not found: \(identifier)"
@@ -93,7 +93,7 @@ final class TaskService {
         descriptor.sortBy = [
             SortDescriptor(\.bucketRawValue, order: .forward),
             SortDescriptor(\.sortOrder, order: .forward),
-            SortDescriptor(\.createdAt, order: .forward)
+            SortDescriptor(\.createdAt, order: .forward),
         ]
 
         return try modelContext.fetch(descriptor)
@@ -250,7 +250,7 @@ final class TaskService {
         bucket: TaskBucket,
         on date: Date
     ) throws -> Int {
-        guard region.isConstrained, bucket != .none else { return Int.max }
+        guard region.isConstrained, bucket != .unassigned else { return Int.max }
         let currentCount = try countActiveTasks(in: region, bucket: bucket, on: date)
         return max(0, bucket.maxCount - currentCount)
     }
@@ -320,7 +320,7 @@ final class TaskService {
         plannedDate: Date,
         excludingTaskIdentifier: UUID?
     ) throws {
-        guard region.isConstrained, bucket != .none else { return }
+        guard region.isConstrained, bucket != .unassigned else { return }
 
         let currentCount = try countActiveTasks(
             in: region,

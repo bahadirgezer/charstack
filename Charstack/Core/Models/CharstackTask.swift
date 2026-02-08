@@ -9,14 +9,14 @@ import SwiftData
 /// - All relationships are optional (none currently, but future-proofed).
 ///
 /// Tasks belong to a `Region` (Morning/Afternoon/Evening/Backlog) and a `TaskBucket`
-/// (must/complementary/misc/none). The 1-3-5 rule is enforced at the service layer,
+/// (must/complementary/misc/unassigned). The 1-3-5 rule is enforced at the service layer,
 /// not at the model level.
 @Model
 final class CharstackTask {
     // MARK: - Identity
 
     /// Unique identifier. No `@Attribute(.unique)` for CloudKit compatibility.
-    var identifier: UUID = UUID()
+    var identifier = UUID()
 
     // MARK: - Content
 
@@ -32,7 +32,7 @@ final class CharstackTask {
     var regionRawValue: String = Region.backlog.rawValue
 
     /// Which priority bucket within the region.
-    var bucketRawValue: String = TaskBucket.none.rawValue
+    var bucketRawValue: String = TaskBucket.unassigned.rawValue
 
     /// Current lifecycle status.
     var statusRawValue: String = TaskStatus.todo.rawValue
@@ -40,7 +40,7 @@ final class CharstackTask {
     // MARK: - Scheduling
 
     /// The date this task is planned for. Defaults to today.
-    var plannedDate: Date = Date()
+    var plannedDate = Date()
 
     /// Display order within its region+bucket group (lower = higher in list).
     var sortOrder: Int = 0
@@ -48,10 +48,10 @@ final class CharstackTask {
     // MARK: - Timestamps
 
     /// When this task was originally created.
-    var createdAt: Date = Date()
+    var createdAt = Date()
 
     /// When this task was last modified.
-    var updatedAt: Date = Date()
+    var updatedAt = Date()
 
     /// When this task was completed (nil if not yet done).
     var completedAt: Date?
@@ -66,7 +66,7 @@ final class CharstackTask {
 
     /// Typed accessor for the task's bucket.
     var bucket: TaskBucket {
-        get { TaskBucket(rawValue: bucketRawValue) ?? .none }
+        get { TaskBucket(rawValue: bucketRawValue) ?? .unassigned }
         set { bucketRawValue = newValue.rawValue }
     }
 
@@ -89,7 +89,7 @@ final class CharstackTask {
         title: String,
         notes: String? = nil,
         region: Region = .backlog,
-        bucket: TaskBucket = .none,
+        bucket: TaskBucket = .unassigned,
         status: TaskStatus = .todo,
         plannedDate: Date = Date(),
         sortOrder: Int = 0,
@@ -131,7 +131,7 @@ extension CharstackTask {
     /// Moves the task to the backlog with deferred status and no bucket.
     func deferToBacklog() {
         region = .backlog
-        bucket = .none
+        bucket = .unassigned
         status = .deferred
         updatedAt = Date()
     }
