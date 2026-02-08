@@ -1,0 +1,237 @@
+name: Release
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  tag-and-release:
+    runs-on: [self-hosted, macOS, ARM64, bgpro-charstack]
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Select Xcode (optional)
+        if: ${{ vars.XCODE_APP_PATH != '' }}
+        run: |
+          set -euo pipefail
+          sudo xcode-select -s "${{ vars.XCODE_APP_PATH }}"
+          xcodebuild -version
+
+      - name: Determine whether VERSION changed
+        id: changed
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "version_changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          BEFORE="${{ github.event.before }}"
+          AFTER="${{ github.sha }}"
+
+          if [[ "$BEFORE" == "0000000000000000000000000000000000000000" ]]; then
+            echo "version_changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if git diff --name-only "$BEFORE" "$AFTER" | grep -qx "VERSION"; then
+            echo "version_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "version_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Stop if no version bump
+        if: steps.changed.outputs.version_changed != 'true'
+        run: |
+          set -euo pipefail
+          echo "No VERSION change detected; skipping release."
+
+      - name: Read and validate VERSION
+        if: steps.changed.outputs.version_changed == 'true'
+        id: ver
+        run: |
+          set -euo pipefail
+          V="$(tr -d '[:space:]' < VERSION)"
+          if ! [[ "$V" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "VERSION must be x.y.z (e.g., 1.2.3). Got: '$V'"
+            exit 1
+          fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "tag=v$V" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure tag does not already exist
+        if: steps.changed.outputs.version_changed == 'true'
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.ver.outputs.tag }}"
+          if git ls-remote --tags origin "refs/tags/$TAG" | grep -q "refs/tags/$TAG"; then
+            echo "Tag $TAG already exists on origin. Refusing to re-release."
+            exit 1
+          fi
+
+      - name: Create and push tag
+        if: steps.changed.outputs.version_changed == 'true'
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.ver.outputs.tag }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
+
+      - name: Install CocoaPods (if needed)
+        if: steps.changed.outputs.version_changed == 'true'
+        run: |
+          set -euo pipefail
+          if [[ -f "Podfile" ]]; then
+            if [[ -f "Gemfile" ]]; then
+              bundle install
+              bundle exec pod install
+            else
+              pod install
+            fi
+          fi
+
+      - name: Detect workspace/project + scheme
+        if: steps.changed.outputs.version_changed == 'true'
+        id: xcode
+        run: |
+          set -euo pipefail
+
+          WORKSPACE="${{ vars.XCODE_WORKSPACE }}"
+          PROJECT="${{ vars.XCODE_PROJECT }}"
+          SCHEME="${{ vars.XCODE_SCHEME }}"
+
+          if [[ -z "$WORKSPACE" && -z "$PROJECT" ]]; then
+            WS="$(ls -1 *.xcworkspace 2>/dev/null | head -n 1 || true)"
+            PRJ="$(ls -1 *.xcodeproj 2>/dev/null | head -n 1 || true)"
+            if [[ -n "$WS" ]]; then WORKSPACE="$WS"; fi
+            if [[ -z "$WORKSPACE" && -n "$PRJ" ]]; then PROJECT="$PRJ"; fi
+          fi
+
+          if [[ -n "$WORKSPACE" ]]; then
+            echo "container=-workspace $WORKSPACE" >> "$GITHUB_OUTPUT"
+          elif [[ -n "$PROJECT" ]]; then
+            echo "container=-project $PROJECT" >> "$GITHUB_OUTPUT"
+          else
+            echo "Could not find *.xcworkspace or *.xcodeproj at repo root."
+            echo "Set vars.XCODE_WORKSPACE or vars.XCODE_PROJECT."
+            exit 1
+          fi
+
+          CONTAINER_LINE="$(grep '^container=' "$GITHUB_OUTPUT" | tail -n 1 | cut -d= -f2-)"
+          if [[ -z "$SCHEME" ]]; then
+            DETECTED="$(CONTAINER_LINE="$CONTAINER_LINE" python3 - <<'PY'
+            import json, subprocess, os, shlex
+            container_line = os.environ["CONTAINER_LINE"]
+            container = shlex.split(container_line)
+            cmd = ["xcodebuild"] + container + ["-list", "-json"]
+            out = subprocess.check_output(cmd)
+            data = json.loads(out)
+            obj = data.get("workspace") or data.get("project") or {}
+            schemes = obj.get("schemes") or []
+            print(schemes[0] if len(schemes) == 1 else "")
+            PY
+            )"
+            if [[ -z "$DETECTED" ]]; then
+              echo "Multiple schemes found. Set vars.XCODE_SCHEME."
+              exit 1
+            fi
+            SCHEME="$DETECTED"
+          fi
+
+          echo "scheme=$SCHEME" >> "$GITHUB_OUTPUT"
+
+      - name: Build archive (.xcarchive)
+        if: steps.changed.outputs.version_changed == 'true'
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.ver.outputs.version }}"
+          BUILDNUM="${{ github.run_number }}"
+          CONTAINER_LINE="${{ steps.xcode.outputs.container }}"
+          SCHEME="${{ steps.xcode.outputs.scheme }}"
+
+          mkdir -p build
+
+          python3 - <<PY
+          import os, shlex, subprocess
+          container_line = os.environ["CONTAINER_LINE"]
+          scheme = os.environ["SCHEME"]
+          version = os.environ["VERSION"]
+          buildnum = os.environ["BUILDNUM"]
+
+          container_args = shlex.split(container_line)
+          cmd = ["xcodebuild", *container_args,
+                "-scheme", scheme,
+                "-configuration", "Release",
+                "-archivePath", os.path.join(os.getcwd(), "build", "App.xcarchive"),
+                f"MARKETING_VERSION={version}",
+                f"CURRENT_PROJECT_VERSION={buildnum}",
+                "clean", "archive"]
+          print("Running:", " ".join(shlex.quote(c) for c in cmd))
+          subprocess.check_call(cmd)
+          PY
+        env:
+          CONTAINER_LINE: ${{ steps.xcode.outputs.container }}
+          SCHEME: ${{ steps.xcode.outputs.scheme }}
+          VERSION: ${{ steps.ver.outputs.version }}
+          BUILDNUM: ${{ github.run_number }}
+
+      - name: Zip archive
+        if: steps.changed.outputs.version_changed == 'true'
+        run: |
+          set -euo pipefail
+          /usr/bin/ditto -c -k --sequesterRsrc --keepParent "build/App.xcarchive" "build/App.xcarchive.zip"
+
+      - name: Generate CHANGELOG.md (from previous tag)
+        if: steps.changed.outputs.version_changed == 'true'
+        id: changelog
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.ver.outputs.tag }}"
+
+          # Find previous SemVer tag (vX.Y.Z) reachable from history.
+          PREV_TAG="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | grep -vx "$TAG" | head -n 1 || true)"
+
+          {
+            echo "# Changelog"
+            echo
+            echo "## $TAG"
+            echo
+            if [[ -n "$PREV_TAG" ]]; then
+              echo "_Changes since $PREV_TAG_"
+              echo
+              git log --no-merges --pretty=format:"- %s" "$PREV_TAG..HEAD"
+            else
+              echo "_Initial release_"
+              echo
+              git log --no-merges --pretty=format:"- %s"
+            fi
+            echo
+          } > build/CHANGELOG.md
+
+      - name: Create GitHub Release (auto notes + assets)
+        if: steps.changed.outputs.version_changed == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: ${{ steps.ver.outputs.tag }}
+          generate_release_notes: true
+          files: |
+            build/App.xcarchive.zip
+            build/CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
