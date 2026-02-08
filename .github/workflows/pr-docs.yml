@@ -52,14 +52,14 @@ jobs:
 
           PROMPT="You are a technical writer for an iOS Swift project. Given the git diff and commit log below, write a concise PR description in markdown.
 
-Format:
-## Summary
-<2-4 bullet points describing WHAT changed and WHY>
+          Format:
+          ## Summary
+          <2-4 bullet points describing WHAT changed and WHY>
 
-## Changes
-<grouped list of specific changes>
+          ## Changes
+          <grouped list of specific changes>
 
-Rules: Be concise and factual. Focus on the what and why, not the how. No filler phrases. Do not wrap in code fences."
+          Rules: Be concise and factual. Focus on the what and why, not the how. No filler phrases. Do not wrap in code fences."
 
           BODY="$(curl -s "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$GEMINI_API_KEY" \
             -H "Content-Type: application/json" \
