@@ -13,7 +13,7 @@ struct CharstackTaskTests {
         #expect(task.title == "Test Task")
         #expect(task.notes == nil)
         #expect(task.region == .backlog)
-        #expect(task.bucket == .none)
+        #expect(task.bucket == .unassigned)
         #expect(task.status == .todo)
         #expect(task.sortOrder == 0)
         #expect(task.completedAt == nil)
@@ -107,7 +107,7 @@ struct CharstackTaskTests {
         task.deferToBacklog()
 
         #expect(task.region == .backlog)
-        #expect(task.bucket == .none)
+        #expect(task.bucket == .unassigned)
         #expect(task.status == .deferred)
     }
 
@@ -164,7 +164,7 @@ struct CharstackTaskTests {
         task.statusRawValue = "invalid_status"
 
         #expect(task.region == .backlog)
-        #expect(task.bucket == .none)
+        #expect(task.bucket == .unassigned)
         #expect(task.status == .todo)
     }
 }

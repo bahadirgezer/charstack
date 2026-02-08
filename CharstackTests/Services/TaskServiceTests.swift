@@ -139,7 +139,7 @@ struct TaskServiceTests {
             let task = makeTask(
                 title: "Backlog \(index)",
                 region: .backlog,
-                bucket: .none
+                bucket: .unassigned
             )
             try service.createTask(task)
         }
@@ -272,7 +272,7 @@ struct TaskServiceTests {
     func fetchBacklogTasks() throws {
         let service = try makeTaskService()
 
-        let backlogTask = makeTask(title: "Backlog", region: .backlog, bucket: .none)
+        let backlogTask = makeTask(title: "Backlog", region: .backlog, bucket: .unassigned)
         let morningTask = makeTask(title: "Morning", region: .morning, bucket: .must)
         try service.createTask(backlogTask)
         try service.createTask(morningTask)
@@ -388,7 +388,7 @@ struct TaskServiceTests {
     @Test("moveTask reverts deferred status to todo")
     func moveTaskRevertsDeferredStatus() throws {
         let service = try makeTaskService()
-        let task = makeTask(title: "Deferred", region: .backlog, bucket: .none, status: .deferred)
+        let task = makeTask(title: "Deferred", region: .backlog, bucket: .unassigned, status: .deferred)
         try service.createTask(task)
 
         try service.moveTask(
@@ -498,7 +498,7 @@ struct TaskServiceTests {
 
         let capacity = try service.remainingCapacity(
             in: .backlog,
-            bucket: .none,
+            bucket: .unassigned,
             on: Date()
         )
         #expect(capacity == Int.max)
@@ -536,7 +536,7 @@ struct TaskServiceTests {
         #expect(backlogTasks.count == 2)
         #expect(backlogTasks.allSatisfy { $0.status == .deferred })
         #expect(backlogTasks.allSatisfy { $0.region == .backlog })
-        #expect(backlogTasks.allSatisfy { $0.bucket == .none })
+        #expect(backlogTasks.allSatisfy { $0.bucket == .unassigned })
     }
 
     @Test("Day rollover preserves completed tasks in place")
@@ -616,7 +616,7 @@ struct TaskServiceTests {
         let backlogTask = makeTask(
             title: "Already in Backlog",
             region: .backlog,
-            bucket: .none,
+            bucket: .unassigned,
             status: .todo,
             plannedDate: yesterday
         )

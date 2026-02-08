@@ -10,7 +10,7 @@ struct TaskBucketTests {
         #expect(TaskBucket.allCases.contains(.must))
         #expect(TaskBucket.allCases.contains(.complementary))
         #expect(TaskBucket.allCases.contains(.misc))
-        #expect(TaskBucket.allCases.contains(.none))
+        #expect(TaskBucket.allCases.contains(.unassigned))
     }
 
     @Test("Max counts enforce 1-3-5 rule")
@@ -18,24 +18,24 @@ struct TaskBucketTests {
         #expect(TaskBucket.must.maxCount == 1)
         #expect(TaskBucket.complementary.maxCount == 3)
         #expect(TaskBucket.misc.maxCount == 5)
-        #expect(TaskBucket.none.maxCount == Int.max)
+        #expect(TaskBucket.unassigned.maxCount == Int.max)
     }
 
     @Test("Sort order is Must < Complementary < Misc < None")
     func sortOrder() {
         #expect(TaskBucket.must < TaskBucket.complementary)
         #expect(TaskBucket.complementary < TaskBucket.misc)
-        #expect(TaskBucket.misc < TaskBucket.none)
+        #expect(TaskBucket.misc < TaskBucket.unassigned)
     }
 
-    @Test("Constrained buckets excludes none")
+    @Test("Constrained buckets excludes unassigned")
     func constrainedBuckets() {
         let constrained = TaskBucket.constrainedBuckets
         #expect(constrained.count == 3)
         #expect(constrained.contains(.must))
         #expect(constrained.contains(.complementary))
         #expect(constrained.contains(.misc))
-        #expect(!constrained.contains(.none))
+        #expect(!constrained.contains(.unassigned))
     }
 
     @Test("Total max per region is 9 (1+3+5)")
@@ -48,7 +48,7 @@ struct TaskBucketTests {
         #expect(TaskBucket.must.displayName == "Must Do")
         #expect(TaskBucket.complementary.displayName == "Complementary")
         #expect(TaskBucket.misc.displayName == "Misc")
-        #expect(TaskBucket.none.displayName == "Unassigned")
+        #expect(TaskBucket.unassigned.displayName == "Unassigned")
     }
 
     @Test("Raw values encode correctly for Codable/SwiftData")
@@ -56,6 +56,6 @@ struct TaskBucketTests {
         #expect(TaskBucket.must.rawValue == "must")
         #expect(TaskBucket.complementary.rawValue == "complementary")
         #expect(TaskBucket.misc.rawValue == "misc")
-        #expect(TaskBucket.none.rawValue == "none")
+        #expect(TaskBucket.unassigned.rawValue == "none")
     }
 }
