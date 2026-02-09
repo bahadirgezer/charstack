@@ -42,7 +42,7 @@ This document outlines the complete technical architecture, design patterns, and
 - **Concurrency:** async/await throughout
 
 ### Testing Framework
-- **Unit Tests:** Swift Testing (`@Suite`, `@Test`, `#expect`) — 38 tests, all passing
+- **Unit Tests:** Swift Testing (`@Suite`, `@Test`, `#expect`) — 86 tests, all passing
 - **UI Tests:** XCTest (limited scope, future)
 - **Test Data:** In-memory SwiftData containers
 - **Preview Data:** `PreviewData.swift` — in-memory container with sample tasks for SwiftUI previews
@@ -134,29 +134,30 @@ Charstack/
 │
 ├── Charstack/                          # Main app source
 │   ├── CharstackApp.swift              # @main entry point, ModelContainer setup
-│   ├── ContentView.swift               # Legacy placeholder (superseded by RootView)
+│   ├── ContentView.swift               # DEPRECATED — legacy placeholder (superseded by RootView)
 │   │
 │   ├── App/
-│   │   ├── AppCoordinator.swift        # NavigationStack coordinator with Route enum
-│   │   └── RootView.swift              # Root view: NavigationStack + destination mapping
+│   │   ├── AppCoordinator.swift        # TabView + NavigationStack coordinator (Tab, Route enums)
+│   │   └── RootView.swift              # Root view: TabView (Today + Backlog) + ScenePhase rollover
 │   │
 │   ├── Core/
 │   │   ├── Models/
 │   │   │   ├── CharstackTask.swift     # SwiftData @Model — CloudKit-safe task model
 │   │   │   ├── Region.swift            # Region enum (morning, afternoon, evening, backlog)
 │   │   │   ├── TaskBucket.swift        # TaskBucket enum (must, complementary, misc, none)
-│   │   │   └── TaskStatus.swift        # TaskStatus enum (todo, inProgress, done, deferred)
+│   │   │   ├── TaskStatus.swift        # TaskStatus enum (todo, inProgress, done, deferred)
+│   │   │   └── BacklogDateGroup.swift  # Date grouping enum (today, yesterday, thisWeek, older)
 │   │   │
 │   │   ├── Services/
-│   │   │   └── TaskService.swift       # CRUD, 1-3-5 enforcement, day rollover, queries
+│   │   │   └── TaskService.swift       # CRUD, 1-3-5 enforcement, day rollover, grouped backlog queries
 │   │   │
 │   │   └── Persistence/
 │   │       └── ModelContainerSetup.swift # Production + testing container factories
 │   │
 │   ├── Features/
 │   │   ├── Today/
-│   │   │   ├── TodayView.swift         # Main dashboard — 4 region cards, daily progress
-│   │   │   ├── TodayViewModel.swift    # State: tasks by region, rollover, completion stats
+│   │   │   ├── TodayView.swift         # Main dashboard — 3 active region cards, daily progress
+│   │   │   ├── TodayViewModel.swift    # State: tasks by active region, rollover, completion stats
 │   │   │   └── Components/
 │   │   │       └── RegionCard.swift    # Summary card: icon, must-do, counts, progress bar
 │   │   │
@@ -167,7 +168,10 @@ Charstack/
 │   │   │       ├── TaskRow.swift       # Task row: checkbox, title, badge, swipe/context
 │   │   │       └── QuickAddBar.swift   # Inline task creation: title + bucket + add
 │   │   │
-│   │   ├── Backlog/                    # (Week 3) Backlog list + triage
+│   │   ├── Backlog/
+│   │   │   ├── BacklogView.swift       # Backlog tab — date-grouped task list with triage actions
+│   │   │   └── BacklogViewModel.swift  # State: grouped tasks, move/edit/delete operations
+│   │   │
 │   │   └── Settings/                   # (Phase 3) User preferences
 │   │
 │   ├── Shared/
@@ -177,19 +181,22 @@ Charstack/
 │   │   │   └── Theme.swift             # Colors, Typography, Spacing, CornerRadius
 │   │   ├── Preview/
 │   │   │   └── PreviewData.swift       # In-memory container + sample tasks for previews
-│   │   └── Components/                 # (Week 3+) Shared UI components (EmptyStateView, etc.)
+│   │   └── Components/
+│   │       ├── EmptyStateView.swift    # Reusable empty state with icon, title, subtitle
+│   │       └── TaskEditSheet.swift     # Shared task edit sheet (title + notes)
 │   │
 │   └── Assets.xcassets
 │
-├── CharstackTests/                     # Unit tests (Swift Testing)
+├── CharstackTests/                     # Unit tests (Swift Testing) — 86 tests
 │   ├── Models/
 │   │   ├── RegionTests.swift
 │   │   ├── TaskBucketTests.swift
 │   │   ├── TaskStatusTests.swift
-│   │   └── CharstackTaskTests.swift
+│   │   ├── CharstackTaskTests.swift
+│   │   └── BacklogDateGroupTests.swift # Date grouping, sorting, display names
 │   │
 │   ├── Services/
-│   │   └── TaskServiceTests.swift      # CRUD, constraints, rollover, edge cases
+│   │   └── TaskServiceTests.swift      # CRUD, constraints, rollover, grouped backlog
 │   │
 │   ├── Extensions/
 │   │   └── DateExtensionsTests.swift
@@ -365,6 +372,7 @@ It owns all CRUD operations, 1-3-5 constraint enforcement, and day rollover logi
 | `createTask(_:)` | Insert task after validating title + bucket capacity |
 | `fetchTasks(for:in:)` | Tasks for a date, optionally filtered by region |
 | `fetchBacklogTasks()` | All backlog tasks, newest first |
+| `fetchGroupedBacklogTasks()` | Backlog tasks grouped by date (Today/Yesterday/This Week/Older) |
 | `fetchTask(byIdentifier:)` | Single task lookup |
 | `updateTaskContent(identifier:title:notes:)` | Edit title/notes |
 | `moveTask(identifier:toRegion:bucket:)` | Move with constraint check at destination |
@@ -393,62 +401,71 @@ Not implemented in MVP. Will handle local notifications via `UNUserNotificationC
 
 ## 7. Navigation
 
-### Coordinator Pattern (Lightweight)
+### TabView + Coordinator Pattern
 
-> **Source of truth:** `Charstack/App/AppCoordinator.swift`
+> **Source of truth:** `Charstack/App/AppCoordinator.swift`, `Charstack/App/RootView.swift`
 
-Charstack uses a lightweight Coordinator pattern for navigation. The coordinator is `@Observable` and `@MainActor`, injected into the SwiftUI environment so any child view can trigger navigation:
+Charstack uses a TabView with two tabs (Today, Backlog) and a lightweight Coordinator pattern for in-tab navigation. The coordinator is `@Observable` and `@MainActor`, injected into the SwiftUI environment:
 
 ```swift
 @Observable
 @MainActor
 final class AppCoordinator {
-    enum Route: Hashable {
-        case regionFocus(Region)
-        // Future: .settings, .taskDetail(UUID), etc.
+    enum Tab: Hashable {
+        case today
+        case backlog
     }
 
-    var navigationPath = NavigationPath()
+    enum Route: Hashable {
+        case regionFocus(Region)
+    }
+
+    var selectedTab: Tab = .today
+    var navigationPath = NavigationPath()  // For Today tab's NavigationStack
 
     func navigate(to route: Route) { navigationPath.append(route) }
-    func pop() { guard !navigationPath.isEmpty else { return }; navigationPath.removeLast() }
-    func popToRoot() { navigationPath = NavigationPath() }
+    func pop() { ... }
+    func popToRoot() { ... }
+    func showBacklog() { selectedTab = .backlog }
 }
 ```
 
-### NavigationStack Usage
-
-> **Source of truth:** `Charstack/App/RootView.swift`
+### RootView Structure
 
 ```swift
 struct RootView: View {
     @State private var coordinator = AppCoordinator()
-    @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
-        NavigationStack(path: $coordinator.navigationPath) {
-            TodayView(viewModel: TodayViewModel(taskService: taskService))
-                .navigationDestination(for: AppCoordinator.Route.self) { route in
-                    switch route {
-                    case .regionFocus(let region):
-                        RegionFocusView(
-                            viewModel: RegionFocusViewModel(region: region, taskService: taskService)
-                        )
-                    }
+        TabView(selection: $coordinator.selectedTab) {
+            Tab("Today", systemImage: "sun.max", value: .today) {
+                NavigationStack(path: $coordinator.navigationPath) {
+                    TodayView(...)
+                        .navigationDestination(for: AppCoordinator.Route.self) { ... }
                 }
+            }
+            Tab("Backlog", systemImage: "tray", value: .backlog) {
+                NavigationStack {
+                    BacklogView(...)
+                }
+            }
         }
         .environment(coordinator)
+        .onChange(of: scenePhase) { /* trigger rollover on foreground */ }
     }
 }
 ```
 
 ### Navigation Design Decisions
 
-1. **NavigationStack over NavigationView:** Modern SwiftUI 4.0+ API, easier to manage state
-2. **Route enum:** Centralized, type-safe navigation definitions — currently `regionFocus(Region)`, extensible for future screens
-3. **Lightweight Coordinator:** Avoids complex routing libraries; adds minimal overhead
-4. **Deep Linking Ready:** Route enum enables future universal link support
-5. **Environment injection:** Coordinator passed via `.environment()` so child views don't need explicit references
+1. **TabView for top-level screens:** Today and Backlog are peer-level features, not parent-child
+2. **Per-tab NavigationStack:** Each tab has its own navigation hierarchy
+3. **Route enum:** Type-safe navigation within the Today tab — extensible for future screens
+4. **Lightweight Coordinator:** Avoids complex routing libraries; adds minimal overhead
+5. **Deep Linking Ready:** Route enum + Tab enum enables future universal link support
+6. **Environment injection:** Coordinator passed via `.environment()` so child views don't need explicit references
+7. **ScenePhase observer:** RootView monitors `scenePhase` to trigger day rollover on foreground return
 
 ---
 
