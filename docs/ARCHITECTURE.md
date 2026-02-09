@@ -11,9 +11,9 @@ This document outlines the complete technical architecture, design patterns, and
 ## 1. Technology Stack
 
 ### Platform & Language
-- **Platform:** iOS 17+ (targets latest iOS features while maintaining reasonable backward compatibility)
+- **Platform:** iOS 26+ (targets latest iOS features while maintaining reasonable backward compatibility)
 - **Language:** Swift 6.0 (strict concurrency checking enabled)
-- **Rationale:** Swift 6.0 provides actor-based concurrency guarantees, preventing data races at compile time. iOS 17+ allows use of latest SwiftUI features and optimizations.
+- **Rationale:** Swift 6.0 provides actor-based concurrency guarantees, preventing data races at compile time. iOS 26+ allows use of latest SwiftUI features and optimizations.
 
 ### UI Framework
 - **Primary:** SwiftUI 100% (no UIKit fallback)
@@ -42,9 +42,10 @@ This document outlines the complete technical architecture, design patterns, and
 - **Concurrency:** async/await throughout
 
 ### Testing Framework
-- **Unit Tests:** XCTest
-- **UI Tests:** XCTest (limited scope)
+- **Unit Tests:** Swift Testing (`@Suite`, `@Test`, `#expect`) — 38 tests, all passing
+- **UI Tests:** XCTest (limited scope, future)
 - **Test Data:** In-memory SwiftData containers
+- **Preview Data:** `PreviewData.swift` — in-memory container with sample tasks for SwiftUI previews
 
 ### Build System
 - **Build Tool:** Xcode 16.0+
@@ -133,7 +134,11 @@ Charstack/
 │
 ├── Charstack/                          # Main app source
 │   ├── CharstackApp.swift              # @main entry point, ModelContainer setup
-│   ├── ContentView.swift               # Root view (placeholder, replaced in Week 2)
+│   ├── ContentView.swift               # Legacy placeholder (superseded by RootView)
+│   │
+│   ├── App/
+│   │   ├── AppCoordinator.swift        # NavigationStack coordinator with Route enum
+│   │   └── RootView.swift              # Root view: NavigationStack + destination mapping
 │   │
 │   ├── Core/
 │   │   ├── Models/
@@ -148,21 +153,33 @@ Charstack/
 │   │   └── Persistence/
 │   │       └── ModelContainerSetup.swift # Production + testing container factories
 │   │
+│   ├── Features/
+│   │   ├── Today/
+│   │   │   ├── TodayView.swift         # Main dashboard — 4 region cards, daily progress
+│   │   │   ├── TodayViewModel.swift    # State: tasks by region, rollover, completion stats
+│   │   │   └── Components/
+│   │   │       └── RegionCard.swift    # Summary card: icon, must-do, counts, progress bar
+│   │   │
+│   │   ├── RegionFocus/
+│   │   │   ├── RegionFocusView.swift   # Single-region task list grouped by bucket
+│   │   │   ├── RegionFocusViewModel.swift # State: CRUD, capacity, edit sheet
+│   │   │   └── Components/
+│   │   │       ├── TaskRow.swift       # Task row: checkbox, title, badge, swipe/context
+│   │   │       └── QuickAddBar.swift   # Inline task creation: title + bucket + add
+│   │   │
+│   │   ├── Backlog/                    # (Week 3) Backlog list + triage
+│   │   └── Settings/                   # (Phase 3) User preferences
+│   │
 │   ├── Shared/
-│   │   └── Extensions/
-│   │       └── Date+Extensions.swift   # Date helpers (startOfDay, endOfDay, etc.)
+│   │   ├── Extensions/
+│   │   │   └── Date+Extensions.swift   # Date helpers (startOfDay, endOfDay, etc.)
+│   │   ├── Theme/
+│   │   │   └── Theme.swift             # Colors, Typography, Spacing, CornerRadius
+│   │   ├── Preview/
+│   │   │   └── PreviewData.swift       # In-memory container + sample tasks for previews
+│   │   └── Components/                 # (Week 3+) Shared UI components (EmptyStateView, etc.)
 │   │
-│   ├── Features/                       # (Week 2+)
-│   │   ├── Today/                      # Dashboard with 4 region cards
-│   │   ├── RegionFocus/                # Single-region task list (1-3-5)
-│   │   ├── Backlog/                    # Backlog list + triage
-│   │   └── Settings/                   # User preferences
-│   │
-│   ├── Resources/
-│   │   └── Assets.xcassets
-│   │
-│   └── Preview Content/
-│       └── Preview Assets/
+│   └── Assets.xcassets
 │
 ├── CharstackTests/                     # Unit tests (Swift Testing)
 │   ├── Models/
@@ -190,12 +207,15 @@ Charstack/
 
 ### Directory Annotations
 
+- **App/:** Application-level wiring — the coordinator pattern and root view.
 - **Core/Models/:** SwiftData @Model classes and supporting enums. Business rules live at model level (computed properties, convenience methods) but enforcement is in Services.
 - **Core/Services/:** Business logic layer — CRUD operations, 1-3-5 constraint validation, day rollover. ViewModels call Services; Views never call Services directly.
 - **Core/Persistence/:** SwiftData ModelContainer configuration. Production (on-disk) and testing (in-memory) factories.
+- **Features/:** Feature modules organized by screen — each contains Views, ViewModels, and Components subdirectories.
 - **Shared/Extensions/:** Swift standard library extensions (Date helpers, etc.).
-- **Features/:** (Week 2+) Feature modules organized by screen — each contains Views + ViewModels.
-- **Resources/:** Asset catalogs, localizable strings.
+- **Shared/Theme/:** Centralized design tokens (colors, typography, spacing).
+- **Shared/Preview/:** Preview helpers (sample data factory).
+- **Shared/Components/:** (Week 3+) Reusable UI components shared across features.
 
 ---
 
@@ -258,71 +278,66 @@ final class CharstackTask {
 
 ## 5. State Management
 
-### ViewModel Pattern with @Observable and @Published
+### ViewModel Pattern with @Observable
 
-All ViewModels conform to the new Swift 6.0 @Observable pattern for reactive state management:
+> **Source files:** `TodayViewModel.swift`, `RegionFocusViewModel.swift`
+
+All ViewModels use `@Observable` + `@MainActor` for reactive state management. They receive `TaskService` via initializer injection — views never call `TaskService` or `@Query` directly.
 
 ```swift
-import Observation
-
 @Observable
-final class TaskListViewModel: Sendable {
-    // MARK: - State
-    var tasks: [Task] = []
-    var selectedRegion: Region = .morning
-    var isLoading: Bool = false
-    var error: AppError? = nil
+@MainActor
+final class TodayViewModel {
+    var tasksByRegion: [Region: [CharstackTask]] = [:]
+    var isLoading = false
+    var errorMessage: String?
+    var rolledOverCount: Int?
 
-    // MARK: - Dependencies
     private let taskService: TaskService
-    private let dayRolloverService: DayRolloverService
 
-    init(
-        taskService: TaskService,
-        dayRolloverService: DayRolloverService
-    ) {
-        self.taskService = taskService
-        self.dayRolloverService = dayRolloverService
-    }
+    init(taskService: TaskService) { self.taskService = taskService }
 
-    // MARK: - Public Methods
-    @MainActor
-    func loadTodaysTasks() async {
-        isLoading = true
-        defer { isLoading = false }
+    func loadTodaysTasks() { /* fetches from taskService, groups by region */ }
+    func performDayRollover() { /* calls taskService.performDayRollover(), reloads */ }
+    func toggleTaskCompletion(identifier: UUID) { /* delegates to taskService */ }
+    func deleteTask(identifier: UUID) { /* delegates to taskService */ }
 
-        do {
-            let today = Date().startOfDay
-            tasks = try await taskService.fetchTasks(for: today)
-        } catch {
-            self.error = AppError.loadFailed(error.localizedDescription)
-        }
-    }
+    // Computed: totalActiveTaskCount, completedActiveTaskCount, dailyCompletionFraction
+}
+```
 
-    @MainActor
-    func createTask(_ task: Task, in region: Region) async {
-        do {
-            var newTask = task
-            newTask.region = region
-            newTask.plannedDate = Date().startOfDay
-            try await taskService.createTask(newTask)
-            await loadTodaysTasks()
-        } catch {
-            self.error = AppError.createFailed(error.localizedDescription)
-        }
-    }
+```swift
+@Observable
+@MainActor
+final class RegionFocusViewModel {
+    let region: Region
+    var tasks: [CharstackTask] = []
+    var isLoading = false
+    var errorMessage: String?
+    var taskBeingEdited: CharstackTask?
+    var isEditSheetPresented = false
 
-    // More methods...
+    private let taskService: TaskService
+
+    init(region: Region, taskService: TaskService) { ... }
+
+    func loadTasks() { /* fetches for this region */ }
+    func addTask(title:bucket:) { /* creates via taskService */ }
+    func toggleTaskCompletion(identifier:) { ... }
+    func deleteTask(identifier:) { ... }
+    func updateTask(identifier:title:notes:) { ... }
+    func moveTask(identifier:toRegion:bucket:) { ... }
+    func remainingCapacity(for bucket:) -> Int { ... }
 }
 ```
 
 ### Key State Management Principles
 
 1. **@Observable:** Native Swift 6.0 observable macro; no third-party dependencies
-2. **@MainActor:** Ensures all state mutations happen on main thread (SwiftUI requirement)
-3. **async/await:** Modern concurrency model, no callbacks or DispatchQueue
-4. **Sendable:** Compile-time verification of thread-safe data flow
-5. **Error Handling:** Centralized error state on ViewModel for display in UI
+2. **@MainActor on ViewModels:** Ensures all state mutations happen on main thread; matches `TaskService`'s actor isolation
+3. **Synchronous TaskService calls:** `TaskService` methods are synchronous (SwiftData writes are sync), so ViewModels call them directly — no `async/await` needed for CRUD
+4. **Error as String:** `errorMessage: String?` drives alert presentation via SwiftUI `.alert(isPresented:)`
+5. **No @Query in Views:** All data flows through ViewModel → TaskService, keeping data access consistent and testable
 
 ### ViewModel Layer Responsibilities
 
@@ -380,56 +395,45 @@ Not implemented in MVP. Will handle local notifications via `UNUserNotificationC
 
 ### Coordinator Pattern (Lightweight)
 
-Charstack uses a lightweight Coordinator pattern for navigation without full-featured routing libraries:
+> **Source of truth:** `Charstack/App/AppCoordinator.swift`
+
+Charstack uses a lightweight Coordinator pattern for navigation. The coordinator is `@Observable` and `@MainActor`, injected into the SwiftUI environment so any child view can trigger navigation:
 
 ```swift
 @Observable
-final class AppCoordinator: Sendable {
+@MainActor
+final class AppCoordinator {
     enum Route: Hashable {
-        case taskList
-        case taskDetail(taskID: UUID)
-        case createTask
-        case editTask(taskID: UUID)
-        case settings
+        case regionFocus(Region)
+        // Future: .settings, .taskDetail(UUID), etc.
     }
 
-    var navigationPath: NavigationPath = NavigationPath()
+    var navigationPath = NavigationPath()
 
-    func navigate(to route: Route) {
-        navigationPath.append(route)
-    }
-
-    func pop() {
-        navigationPath.removeLast()
-    }
-
-    func popToRoot() {
-        navigationPath.removeLast(navigationPath.count)
-    }
+    func navigate(to route: Route) { navigationPath.append(route) }
+    func pop() { guard !navigationPath.isEmpty else { return }; navigationPath.removeLast() }
+    func popToRoot() { navigationPath = NavigationPath() }
 }
 ```
 
 ### NavigationStack Usage
 
+> **Source of truth:** `Charstack/App/RootView.swift`
+
 ```swift
 struct RootView: View {
-    @State var coordinator = AppCoordinator()
+    @State private var coordinator = AppCoordinator()
+    @Environment(\.modelContext) private var modelContext
 
     var body: some View {
         NavigationStack(path: $coordinator.navigationPath) {
-            TaskListView()
+            TodayView(viewModel: TodayViewModel(taskService: taskService))
                 .navigationDestination(for: AppCoordinator.Route.self) { route in
                     switch route {
-                    case .taskList:
-                        TaskListView()
-                    case .taskDetail(let id):
-                        TaskDetailView(taskID: id)
-                    case .createTask:
-                        TaskFormView(mode: .create)
-                    case .editTask(let id):
-                        TaskFormView(mode: .edit(id))
-                    case .settings:
-                        SettingsView()
+                    case .regionFocus(let region):
+                        RegionFocusView(
+                            viewModel: RegionFocusViewModel(region: region, taskService: taskService)
+                        )
                     }
                 }
         }
@@ -441,9 +445,10 @@ struct RootView: View {
 ### Navigation Design Decisions
 
 1. **NavigationStack over NavigationView:** Modern SwiftUI 4.0+ API, easier to manage state
-2. **Route enum:** Centralized, type-safe navigation definitions
+2. **Route enum:** Centralized, type-safe navigation definitions — currently `regionFocus(Region)`, extensible for future screens
 3. **Lightweight Coordinator:** Avoids complex routing libraries; adds minimal overhead
 4. **Deep Linking Ready:** Route enum enables future universal link support
+5. **Environment injection:** Coordinator passed via `.environment()` so child views don't need explicit references
 
 ---
 
@@ -615,11 +620,11 @@ final class TaskListUITests: XCTestCase {
 - Built on CloudKit infrastructure (future-proof)
 
 **Trade-offs:**
-- Requires iOS 17+ (acceptable for new app)
+- Requires iOS 26+ (acceptable for new app)
 - Smaller ecosystem than CoreData
 - Mitigation: Fallback to JSON export for compatibility
 
-**Related:** Considered using Realm, but SwiftData's native status and iOS 17+ support won out
+**Related:** Considered using Realm, but SwiftData's native status and iOS 26+ support won out
 
 ---
 
@@ -677,10 +682,11 @@ final class TaskListUITests: XCTestCase {
 - Can implement later without breaking data model
 - Most users don't manage task dependencies daily
 
-**Included Instead:**
-- isSticky: Force task to top of region
-- autoCarry: Automatic carryover to next day
-- These features provide flexible task management without dependency graph complexity
+**Deferred to Phase 2:**
+- `autoCarry`: Automatic carryover to same region next day (instead of backlog)
+- `isSticky`: Force task to top of region
+- `expiresAt`: Auto-delete from backlog after expiration
+- Current MVP rollover moves ALL incomplete active-region tasks to backlog unconditionally
 
 **Future Enhancement:** Add optional "blockedBy" field and task graph traversal in v2 if user research validates need
 
@@ -691,7 +697,7 @@ final class TaskListUITests: XCTestCase {
 **Decision:** 100% SwiftUI; no UIKit fallback components
 
 **Rationale:**
-- iOS 17+ baseline allows full SwiftUI feature set
+- iOS 26+ baseline allows full SwiftUI feature set
 - SwiftUI's declarative model maps perfectly to MVVM
 - Faster iteration and preview-driven development
 - Smaller codebase (no dual implementations)
@@ -702,7 +708,7 @@ final class TaskListUITests: XCTestCase {
 - Some custom components may require workarounds (acceptable)
 - Dependency on Apple's continued SwiftUI investment (justified)
 
-**Implementation:** SwiftUI 4.0+ (available on iOS 17+); use modifiers over legacy apis
+**Implementation:** SwiftUI 4.0+ (available on iOS 26+); use modifiers over legacy apis
 
 ---
 

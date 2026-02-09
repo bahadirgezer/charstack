@@ -1,14 +1,14 @@
 # Charstack — Claude Context (Repo-Level)
 
 ## Project Overview
-Charstack is a minimal iOS daily task manager built around **four day regions** (Morning, Afternoon, Evening, Backlog) using a **1-3-5 rule** per active region. The app is SwiftUI-only, targeting iOS 17+ with SwiftData persistence.
+Charstack is a minimal iOS daily task manager built around **four day regions** (Morning, Afternoon, Evening, Backlog) using a **1-3-5 rule** per active region. The app is SwiftUI-only, targeting iOS 26+ with SwiftData persistence.
 
 ## Tech Stack
 - **Language**: Swift 6.0 (strict concurrency)
 - **UI**: SwiftUI (100%, no UIKit)
 - **Persistence**: SwiftData (CloudKit sync in Phase 2)
 - **Auth (Phase 3+)**: Sign in with Apple + Google Sign-In via BaaS (TBD: Firebase or Supabase)
-- **Minimum iOS**: 17.0
+- **Minimum iOS**: 26.0
 - **Architecture**: MVVM with lightweight coordinator navigation
 
 ## Commands
@@ -48,15 +48,25 @@ Charstack is a minimal iOS daily task manager built around **four day regions** 
 ```
 Charstack/
 ├── CharstackApp.swift       # @main entry point, ModelContainer setup
-├── ContentView.swift        # Root view (placeholder until Week 2)
+├── ContentView.swift        # Legacy placeholder (superseded by RootView)
+├── App/
+│   ├── AppCoordinator.swift # NavigationStack coordinator with Route enum
+│   └── RootView.swift       # Root view: NavigationStack + destination mapping
 ├── Core/
 │   ├── Models/              # CharstackTask (@Model), Region, TaskBucket, TaskStatus enums
 │   ├── Services/            # TaskService (CRUD + 1-3-5 + rollover)
 │   └── Persistence/         # ModelContainerSetup (production + testing containers)
-├── Features/                # (Week 2+) TodayView, RegionFocus, Backlog, Settings
+├── Features/
+│   ├── Today/               # TodayView, TodayViewModel, Components/RegionCard
+│   ├── RegionFocus/         # RegionFocusView, RegionFocusViewModel, Components/TaskRow, QuickAddBar
+│   ├── Backlog/             # (Week 3) BacklogView + ViewModel
+│   └── Settings/            # (Phase 3) SettingsView
 ├── Shared/
-│   └── Extensions/          # Date+Extensions
-├── Resources/               # Assets.xcassets
+│   ├── Extensions/          # Date+Extensions
+│   ├── Theme/               # Theme (Colors, Typography, Spacing, CornerRadius)
+│   ├── Preview/             # PreviewData (sample tasks for SwiftUI previews)
+│   └── Components/          # (Week 3+) Shared UI components
+├── Assets.xcassets
 CharstackTests/
 ├── Models/                  # Region, TaskBucket, TaskStatus, CharstackTask tests
 ├── Services/                # TaskServiceTests (CRUD, constraints, rollover)
@@ -68,13 +78,13 @@ CharstackTests/
 - `.claude/TODO.md` — Longer-term work items. Extension of TODAY.md for items that span sessions.
 - `context.md` files — Brain dumps in directories with significant work. Written for the *next* session.
 
-## Documentation (keep these updated)
-These docs are the source of truth. When making changes that affect any of them, update them:
+## Documentation (keep these updated — MANDATORY)
+These docs are the source of truth. **Whenever you make changes that affect any of these, update them in the same session.** Don't defer doc updates — stale docs are worse than no docs.
 - `docs/PROJECT_BRIEF.md` — Original concept and vision
 - `docs/REQUIREMENTS.md` — Functional/non-functional requirements + App Store compliance
-- `docs/ARCHITECTURE.md` — Technical decisions, data models, patterns
-- `docs/ROADMAP.md` — Development phases and milestones
-- `CHANGELOG.md` — Version history
+- `docs/ARCHITECTURE.md` — Technical decisions, data models, patterns, project structure
+- `docs/ROADMAP.md` — Development phases and milestones (mark items ✅ when done)
+- `CHANGELOG.md` — Version history (add entries under `[Unreleased]`)
 
 ## App Store Compliance (Phase 2+)
 When accounts are added, these are **mandatory** (Apple rejects without them):
@@ -92,5 +102,5 @@ See `docs/REQUIREMENTS.md` section 2.6 for full details.
 - **Tags**: Semantic versioning (`v0.1.0`, `v1.0.0`, etc.)
 
 ## Current Phase
-Phase 1 (MVP) Week 1 (Data Layer) is complete. Week 2 (UI Layer) is next.
+Phase 1 (MVP) Week 1 (Data Layer) and Week 2 (UI Layer) are complete. Week 3 (Backlog & Day Rollover) is next.
 See `.claude/TODAY.md` for current tasks.

@@ -1,6 +1,6 @@
 # Charstack iOS Development Roadmap
 
-A minimal daily task manager built with SwiftUI and SwiftData on iOS 17+.
+A minimal daily task manager built with SwiftUI and SwiftData on iOS 26+.
 
 ---
 
@@ -31,7 +31,7 @@ A minimal daily task manager built with SwiftUI and SwiftData on iOS 17+.
 - [x] Architecture Design (MVVM with SwiftData)
 - [x] Repository Structure & Project Organization
 - [x] Git Workflow & Branch Strategy Documentation
-- [x] Tech Stack Confirmation (iOS 17+, SwiftUI, SwiftData, MVVM)
+- [x] Tech Stack Confirmation (iOS 26+, SwiftUI, SwiftData, MVVM)
 - [x] Development Environment Setup Guide
 
 **Completion Notes:**
@@ -97,58 +97,68 @@ The MVP focuses on the core 1-3-5 daily task management experience with four reg
 
 ---
 
-### Week 2: UI — Today & Region Views
+### Week 2: UI — Today & Region Views ✅ COMPLETE
 
 **Objective:** Build the main interface showing today's tasks by region
 
-- [ ] TodayView (Main Tab)
-  - [ ] Navigation structure setup
-  - [ ] Safe area handling for dynamic island
-  - [ ] Scroll view with four region sections
-  - [ ] Empty state for completed day
+- [x] TodayView (Main Tab)
+  - [x] Navigation structure setup (NavigationStack + AppCoordinator)
+  - [x] Safe area handling for dynamic island
+  - [x] Scroll view with four region cards
+  - [x] Empty state for completed day
+  - [x] Daily progress bar with completion count
+  - [x] Rollover banner showing deferred task count
 
-- [ ] RegionCard Component
-  - [ ] Region name header with visual hierarchy
-  - [ ] Task count badge (e.g., "1/1", "2/3")
-  - [ ] Visual distinction between regions (colors or icons)
-  - [ ] Responsive layout for all iPhone sizes
+- [x] RegionCard Component
+  - [x] Region name header with icon and visual hierarchy
+  - [x] Task count badge (e.g., "2/3")
+  - [x] Visual distinction between regions (per-region colors)
+  - [x] Must-do task title display (or empty placeholder)
+  - [x] Bucket fill counts (Complementary and Misc)
+  - [x] Completion progress bar
 
-- [ ] RegionFocusView (Detail)
-  - [ ] Expanded view of a single region
-  - [ ] Full task list for region
-  - [ ] Add task button for region
-  - [ ] Edit/delete actions
-  - [ ] Navigation back to today view
+- [x] RegionFocusView (Detail)
+  - [x] Expanded view of a single region grouped by bucket sections
+  - [x] Full task list for region (Must-Do, Complementary, Misc)
+  - [x] Add task via QuickAddBar
+  - [x] Edit (sheet), delete (swipe/context), move (context menu) actions
+  - [x] Navigation back to today view
+  - [x] Empty bucket placeholders
+  - [x] Backlog view with ungrouped task list + move-to-region menu
 
-- [ ] TaskRow Component
-  - [ ] Checkbox for completion state
-  - [ ] Task title display
-  - [ ] Priority indicator (visual: dot, badge, or icon)
-  - [ ] Tap to expand/collapse description
-  - [ ] Swipe actions (edit, delete, defer)
+- [x] TaskRow Component
+  - [x] Checkbox for completion state with symbol transition
+  - [x] Task title display with strikethrough on completion
+  - [x] Bucket indicator badge (color-coded)
+  - [x] Notes preview (1-line truncated)
+  - [x] Swipe actions (complete, delete)
+  - [x] Context menu (edit, move, delete)
 
-- [ ] Quick Add Form
-  - [ ] Title input field
-  - [ ] Optional description
-  - [ ] Region selection dropdown
-  - [ ] Add button with validation
-  - [ ] Keyboard handling & dismissal
+- [x] Quick Add Form
+  - [x] Title input field with keyboard submit
+  - [x] Bucket type picker (menu-based)
+  - [x] Add button with validation (disabled when empty)
 
-- [ ] ViewModels
-  - [ ] TodayViewModel (manages today's task state, loading)
-  - [ ] RegionFocusViewModel (single region management)
-  - [ ] TaskRowViewModel (task display logic)
-  - [ ] MVVM state binding with @Published properties
+- [x] ViewModels
+  - [x] TodayViewModel (manages today's task state, loading, rollover, daily progress)
+  - [x] RegionFocusViewModel (single region CRUD, bucket queries, edit sheet state)
+  - [x] @Observable pattern with @MainActor (Swift 6.0)
 
-- [ ] UI Tests & Preview Integration
-  - [ ] SwiftUI previews for all components
-  - [ ] Preview with mock data
-  - [ ] Device-specific preview variations
+- [x] UI Tests & Preview Integration
+  - [x] SwiftUI previews for all components
+  - [x] PreviewData helper with in-memory container and sample tasks
+  - [x] Multiple preview variants (active/completed tasks, empty/full regions)
+
+- [x] Theme System
+  - [x] Centralized colors (semantic, region-specific, bucket-specific)
+  - [x] Typography scale (largeTitle through footnote)
+  - [x] Spacing and corner radius constants
 
 **Deliverables:**
-- Fully functional today view with all four regions
-- Add/edit/delete task flow working end-to-end
-- All UI components tested in previews
+- ✅ Fully functional today view with all four region cards
+- ✅ Add/edit/delete/complete/move task flow working end-to-end
+- ✅ All UI components tested in previews
+- ✅ Lightweight theme system for consistent styling
 
 ---
 
@@ -229,6 +239,16 @@ Before tagging v0.1.0, all items must be complete:
 **Branch:** develop
 **Git Tag:** `release/v0.5.0`
 **Target Completion:** Mid-March 2026
+
+### Task Model Enhancements (Deferred from MVP)
+
+The following properties were intentionally omitted from the Phase 1 `CharstackTask` model to keep the MVP simple. They are planned as additive schema changes in Phase 2:
+
+- [ ] `autoCarry: Bool` — Task-level override to automatically roll forward to the same region next day instead of moving to Backlog
+- [ ] `isSticky: Bool` — Force task to top of its region regardless of sort order
+- [ ] `expiresAt: Date?` — Optional expiration date after which the task is auto-deleted from Backlog
+
+Current MVP rollover moves ALL incomplete active-region tasks to Backlog unconditionally.
 
 ### CloudKit Setup
 
@@ -356,7 +376,7 @@ Before tagging v0.1.0, all items must be complete:
   - [ ] Battery impact minimal
 
 - [ ] Compatibility Testing
-  - [ ] iOS 17.0 through latest version
+  - [ ] iOS 26.0 through latest version
   - [ ] All iPhone models (SE to Pro Max)
   - [ ] iPad support verified
   - [ ] iPadOS optimizations (split view, keyboard)
@@ -650,5 +670,5 @@ Use this checklist for each major release:
 
 ---
 
-**Last Updated:** February 8, 2026 (Week 1 complete)
+**Last Updated:** February 9, 2026 (Week 2 complete)
 **Maintained By:** Bahadır Gezer
