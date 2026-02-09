@@ -42,12 +42,12 @@ enum BacklogDateGroup: Identifiable, CaseIterable, Comparable {
         }
     }
 
-    static func < (lhs: BacklogDateGroup, rhs: BacklogDateGroup) -> Bool {
+    static func < (lhs: Self, rhs: Self) -> Bool {
         lhs.sortOrder < rhs.sortOrder
     }
 
     /// Determines which group a given date belongs to, relative to today.
-    static func group(for date: Date) -> BacklogDateGroup {
+    static func group(for date: Date) -> Self {
         let calendar = Calendar.current
         let now = Date()
 
@@ -55,8 +55,7 @@ enum BacklogDateGroup: Identifiable, CaseIterable, Comparable {
             return .today
         } else if calendar.isDateInYesterday(date) {
             return .yesterday
-        } else if let startOfWeek = calendar.dateInterval(of: .weekOfYear, for: now)?.start,
-                  date >= startOfWeek {
+        } else if let startOfWeek = calendar.dateInterval(of: .weekOfYear, for: now)?.start, date >= startOfWeek {
             return .thisWeek
         } else {
             return .older

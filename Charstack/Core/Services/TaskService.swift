@@ -131,9 +131,7 @@ final class TaskService {
             grouped[group, default: []].append(task)
         }
 
-        return grouped
-            .sorted { $0.key < $1.key }
-            .map { (group: $0.key, tasks: $0.value) }
+        return grouped.sorted { $0.key < $1.key }.map { (group: $0.key, tasks: $0.value) }
     }
 
     /// Fetches a single task by its identifier.

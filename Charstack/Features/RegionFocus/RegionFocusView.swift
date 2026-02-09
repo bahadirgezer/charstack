@@ -241,4 +241,3 @@ struct RegionFocusView: View {
     }
     .modelContainer(container)
 }
-
