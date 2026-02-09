@@ -8,6 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **UI Layer (Phase 1 Week 2)**
+  - `TodayView` + `TodayViewModel` — main dashboard with four region cards, daily progress bar, rollover banner
+  - `RegionCard` component — region summary with icon, must-do title, bucket fill counts, progress bar
+  - `RegionFocusView` + `RegionFocusViewModel` — single-region task list grouped by bucket (Must/Comp/Misc)
+  - `TaskRow` component — checkbox, title, notes preview, bucket badge, swipe actions (complete/delete), context menu
+  - `QuickAddBar` component — inline task creation with title field, bucket picker, and add button
+  - `TaskEditSheet` — modal sheet for editing task title and notes
+  - `AppCoordinator` — lightweight NavigationStack coordinator with type-safe `Route` enum
+  - `RootView` — root view wiring NavigationStack, coordinator, and destination mapping
+  - `Theme` system — centralized colors (semantic + region/bucket), typography, spacing, and corner radius constants
+  - `PreviewData` — in-memory container factory with sample tasks for SwiftUI previews
+  - Navigation: Today → RegionFocus (tap region card), back navigation, context menu "Move to..." with sub-menus
+  - Empty states for regions with no tasks and days with no planned tasks
+  - Accessibility: labels, hints, combined elements, VoiceOver-friendly descriptions throughout
+  - SwiftUI previews for all components (RegionCard, TaskRow, TodayView, RegionFocusView, QuickAddBar)
+
+### Fixed
+- `release.yml` — added missing `-destination` and code signing flags to archive step
+
 - **Data Layer (Phase 1 Week 1)**
   - `CharstackTask` SwiftData model — CloudKit-safe (no unique constraints, all defaults)
   - `Region` enum (Morning, Afternoon, Evening, Backlog) with display names, SF Symbols, and sort ordering

@@ -21,19 +21,59 @@
 		3FAC33452F3A000000E3D3F4 /* CharstackTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CharstackTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		3FAE23302F395DC200DCD835 /* Exceptions for "Charstack" folder in "Charstack" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				App/context.md,
+				Core/context.md,
+				Features/context.md,
+				Shared/context.md,
+			);
+			target = 3FAC33342F1D1F7F00E3D3F4 /* Charstack */;
+		};
+		3FAE23312F395DC600DCD835 /* Exceptions for "docs" folder in "Charstack" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				ARCHITECTURE.md,
+				LINT_AND_FORMAT.md,
+				PROJECT_BRIEF.md,
+				REQUIREMENTS.md,
+				ROADMAP.md,
+			);
+			target = 3FAC33342F1D1F7F00E3D3F4 /* Charstack */;
+		};
+		3FAE23322F395DD600DCD835 /* Exceptions for "CharstackTests" folder in "CharstackTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				context.md,
+			);
+			target = 3FAC33442F3A000000E3D3F4 /* CharstackTests */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		3FAC33372F1D1F7F00E3D3F4 /* Charstack */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				3FAE23302F395DC200DCD835 /* Exceptions for "Charstack" folder in "Charstack" target */,
+			);
 			path = Charstack;
 			sourceTree = "<group>";
 		};
 		3FAC33462F3A000000E3D3F4 /* CharstackTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				3FAE23322F395DD600DCD835 /* Exceptions for "CharstackTests" folder in "CharstackTests" target */,
+			);
 			path = CharstackTests;
 			sourceTree = "<group>";
 		};
 		3FAC335C2F38937B00E3D3F4 /* docs */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				3FAE23312F395DC600DCD835 /* Exceptions for "docs" folder in "Charstack" target */,
+			);
 			path = docs;
 			sourceTree = "<group>";
 		};
