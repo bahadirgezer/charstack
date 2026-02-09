@@ -152,9 +152,13 @@ PY
             "${{ steps.xcode.outputs.flag }}" "${{ steps.xcode.outputs.path }}" \
             -scheme "${{ steps.xcode.outputs.scheme }}" \
             -configuration Release \
+            -destination "platform=iOS Simulator,name=iPhone 17 Pro" \
             -archivePath build/App.xcarchive \
             MARKETING_VERSION="${{ steps.ver.outputs.version }}" \
             CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
             clean archive
 
       - name: Zip archive

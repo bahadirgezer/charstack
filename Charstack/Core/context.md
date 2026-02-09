@@ -21,6 +21,11 @@ The `Core/` directory contains the data layer and business logic for Charstack. 
 3. **Day rollover is on TaskService:** No separate `DayRolloverService` — simpler with shared `ModelContext`.
 4. **`deferred` status:** Distinguishes rolled-over tasks from fresh backlog items.
 
+## Consumers
+- **TodayViewModel** — Calls `fetchTasks(for:in:)`, `fetchBacklogTasks()`, `performDayRollover()`, `toggleTaskCompletion()`, `deleteTask()`
+- **RegionFocusViewModel** — Calls `createTask()`, `fetchTasks(for:in:)`, `toggleTaskCompletion()`, `deleteTask()`, `updateTaskContent()`, `moveTask()`, `remainingCapacity()`
+- Views never call TaskService directly — always through ViewModels.
+
 ## What's Not Done
 - No `DayRolloverService` (integrated into TaskService)
 - No `NotificationService` (Phase 3)

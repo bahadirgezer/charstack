@@ -23,6 +23,7 @@ Unit tests using **Swift Testing** framework (`@Suite`, `@Test`, `#expect`), not
 - DateExtensionsTests: 7
 
 ### What's Not Tested
-- UI/ViewModel tests (no ViewModels yet — Week 2)
+- ViewModel tests (TodayViewModel, RegionFocusViewModel exist now — consider adding in Week 3)
+- UI tests (no XCUITest yet)
 - Performance benchmarks
 - Edge cases: very large task counts, timezone transitions
