@@ -5,6 +5,11 @@ import SwiftUI
 ///
 /// Supports completion toggle via checkbox tap, and contextual swipe actions
 /// for editing, deleting, and deferring tasks.
+///
+/// **Design note:** TaskRow intentionally has no dedicated ViewModel. It is a pure display
+/// component that takes a `CharstackTask` and closures for actions. No transformation logic
+/// is needed. If TaskRow grows complex (e.g., animated state transitions, debounced inputs,
+/// inline editing), a TaskRowViewModel should be introduced at that point.
 struct TaskRow: View {
     let task: CharstackTask
     let onToggleCompletion: () -> Void
