@@ -48,28 +48,28 @@ Charstack is a minimal iOS daily task manager built around **four day regions** 
 ```
 Charstack/
 ├── CharstackApp.swift       # @main entry point, ModelContainer setup
-├── ContentView.swift        # Legacy placeholder (superseded by RootView)
+├── ContentView.swift        # DEPRECATED — legacy placeholder (superseded by RootView)
 ├── App/
-│   ├── AppCoordinator.swift # NavigationStack coordinator with Route enum
-│   └── RootView.swift       # Root view: NavigationStack + destination mapping
+│   ├── AppCoordinator.swift # TabView + NavigationStack coordinator (Tab, Route enums)
+│   └── RootView.swift       # Root: TabView (Today + Backlog) + ScenePhase rollover
 ├── Core/
-│   ├── Models/              # CharstackTask (@Model), Region, TaskBucket, TaskStatus enums
-│   ├── Services/            # TaskService (CRUD + 1-3-5 + rollover)
+│   ├── Models/              # CharstackTask, Region, TaskBucket, TaskStatus, BacklogDateGroup
+│   ├── Services/            # TaskService (CRUD + 1-3-5 + rollover + grouped backlog)
 │   └── Persistence/         # ModelContainerSetup (production + testing containers)
 ├── Features/
 │   ├── Today/               # TodayView, TodayViewModel, Components/RegionCard
 │   ├── RegionFocus/         # RegionFocusView, RegionFocusViewModel, Components/TaskRow, QuickAddBar
-│   ├── Backlog/             # (Week 3) BacklogView + ViewModel
+│   ├── Backlog/             # BacklogView, BacklogViewModel (date-grouped backlog tab)
 │   └── Settings/            # (Phase 3) SettingsView
 ├── Shared/
 │   ├── Extensions/          # Date+Extensions
 │   ├── Theme/               # Theme (Colors, Typography, Spacing, CornerRadius)
 │   ├── Preview/             # PreviewData (sample tasks for SwiftUI previews)
-│   └── Components/          # (Week 3+) Shared UI components
+│   └── Components/          # EmptyStateView, TaskEditSheet
 ├── Assets.xcassets
 CharstackTests/
-├── Models/                  # Region, TaskBucket, TaskStatus, CharstackTask tests
-├── Services/                # TaskServiceTests (CRUD, constraints, rollover)
+├── Models/                  # Region, TaskBucket, TaskStatus, CharstackTask, BacklogDateGroup tests
+├── Services/                # TaskServiceTests (CRUD, constraints, rollover, grouped backlog)
 ├── Extensions/              # DateExtensionsTests
 ```
 
@@ -102,5 +102,5 @@ See `docs/REQUIREMENTS.md` section 2.6 for full details.
 - **Tags**: Semantic versioning (`v0.1.0`, `v1.0.0`, etc.)
 
 ## Current Phase
-Phase 1 (MVP) Week 1 (Data Layer) and Week 2 (UI Layer) are complete. Week 3 (Backlog & Day Rollover) is next.
+Phase 1 (MVP) Weeks 1-3 complete. Week 4 (MVP Polish & Tagging) is next.
 See `.claude/TODAY.md` for current tasks.

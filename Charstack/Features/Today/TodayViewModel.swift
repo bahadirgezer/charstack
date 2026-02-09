@@ -4,8 +4,10 @@ import SwiftData
 
 /// ViewModel managing the Today dashboard state.
 ///
-/// Fetches today's tasks grouped by region and provides region-level
-/// summaries for the RegionCard components. All data flows through TaskService.
+/// Fetches today's tasks for active regions (Morning, Afternoon, Evening)
+/// and provides region-level summaries for the RegionCard components.
+/// Backlog is managed by its own tab and BacklogViewModel.
+/// All data flows through TaskService.
 @Observable
 @MainActor
 final class TodayViewModel {
@@ -34,7 +36,10 @@ final class TodayViewModel {
 
     // MARK: - Data Loading
 
-    /// Loads today's tasks from the service layer and groups them by region.
+    /// Loads today's tasks from the service layer and groups them by active region.
+    ///
+    /// Only fetches for active regions (Morning, Afternoon, Evening).
+    /// Backlog is managed separately by BacklogViewModel.
     func loadTodaysTasks() {
         isLoading = true
         errorMessage = nil
@@ -44,12 +49,9 @@ final class TodayViewModel {
             let today = Date()
             var grouped: [Region: [CharstackTask]] = [:]
 
-            for region in Region.allCases where region != .backlog {
+            for region in Region.activeRegions {
                 grouped[region] = try taskService.fetchTasks(for: today, in: region)
             }
-
-            // Fetch backlog tasks separately (not date-scoped).
-            grouped[.backlog] = try taskService.fetchBacklogTasks()
 
             tasksByRegion = grouped
         } catch {

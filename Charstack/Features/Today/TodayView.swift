@@ -1,11 +1,11 @@
 import SwiftData
 import SwiftUI
 
-/// The main dashboard view showing all four regions as summary cards.
+/// The main dashboard view showing active regions (Morning, Afternoon, Evening) as summary cards.
 ///
 /// Displays today's task overview with region cards, daily progress,
 /// and navigation to individual RegionFocusViews. Triggers day rollover
-/// on appearance.
+/// on appearance. Backlog is now a separate tab and no longer shown here.
 struct TodayView: View {
     @State var viewModel: TodayViewModel
     @Environment(AppCoordinator.self) private var coordinator
@@ -127,7 +127,7 @@ struct TodayView: View {
 
     private var regionCards: some View {
         VStack(spacing: Theme.Spacing.medium) {
-            ForEach(Region.allCases) { region in
+            ForEach(Region.activeRegions, id: \.self) { region in
                 RegionCard(
                     region: region,
                     tasks: viewModel.tasks(for: region),
@@ -140,20 +140,11 @@ struct TodayView: View {
     }
 
     private var emptyDayMessage: some View {
-        VStack(spacing: Theme.Spacing.medium) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 40))
-                .foregroundStyle(Theme.Colors.textTertiary)
-
-            Text("No tasks planned for today")
-                .font(Theme.Typography.headline)
-                .foregroundStyle(Theme.Colors.textSecondary)
-
-            Text("Tap a region to start planning your day")
-                .font(Theme.Typography.subheadline)
-                .foregroundStyle(Theme.Colors.textTertiary)
-        }
-        .padding(.vertical, Theme.Spacing.extraLarge)
+        EmptyStateView(
+            systemImageName: "sparkles",
+            title: "No tasks planned for today",
+            subtitle: "Tap a region to start planning your day"
+        )
     }
 
     // MARK: - Helpers

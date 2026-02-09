@@ -116,6 +116,24 @@ final class TaskService {
         return try modelContext.fetch(descriptor)
     }
 
+    /// Fetches backlog tasks grouped by date category ("Today", "Yesterday", "This Week", "Older").
+    ///
+    /// Groups are determined by each task's `plannedDate` relative to the current date.
+    /// Groups are sorted chronologically (today first), tasks within each group by creation date (newest first).
+    ///
+    /// - Returns: An ordered array of (group, tasks) pairs. Only non-empty groups are included.
+    func fetchGroupedBacklogTasks() throws -> [(group: BacklogDateGroup, tasks: [CharstackTask])] {
+        let allBacklogTasks = try fetchBacklogTasks()
+
+        var grouped: [BacklogDateGroup: [CharstackTask]] = [:]
+        for task in allBacklogTasks {
+            let group = BacklogDateGroup.group(for: task.plannedDate)
+            grouped[group, default: []].append(task)
+        }
+
+        return grouped.sorted { $0.key < $1.key }.map { (group: $0.key, tasks: $0.value) }
+    }
+
     /// Fetches a single task by its identifier.
     ///
     /// - Parameter identifier: The UUID of the task.

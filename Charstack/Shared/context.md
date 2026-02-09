@@ -18,11 +18,13 @@ Lightweight theme system using nested enums:
 - `sampleTasks` — 13 tasks across all regions, buckets, and statuses. Includes completed and deferred tasks.
 - `singleTask`, `completedTask` — Isolated tasks for component previews.
 
-### Components/ (Week 3 — Not Started)
-Will hold shared UI components like `EmptyStateView.swift`.
+### Components/ (Week 3)
+- **EmptyStateView.swift** — Reusable empty state component with configurable icon, title, subtitle, and icon color. Used by TodayView, RegionFocusView, and BacklogView.
+- **TaskEditSheet.swift** — Shared edit sheet for task title/notes editing. Form with cancel/save toolbar buttons, `.presentationDetents([.medium])`. Used by RegionFocusView and BacklogView. (Extracted from RegionFocusView's private struct in Week 3.)
 
 ## Design Notes
 - Theme is intentionally simple — static properties, no environment injection, no protocol-based theming.
 - PreviewData creates a fresh container each access. This is fine for previews but don't use in production.
 - Region colors: Morning=orange, Afternoon=yellow, Evening=indigo, Backlog=gray.
 - Bucket colors: Must=red, Complementary=blue, Misc=gray, Unassigned=tertiaryLabel.
+- Shared components take data + closures, never ViewModels. They're pure display components.
