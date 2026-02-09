@@ -84,38 +84,38 @@ jobs:
             export BUMP
 
             FINAL_VERSION="$(python3 - <<'PY'
-import os, re
+            import os, re
 
-base = os.environ["BASE"]
-latest = os.environ.get("LATEST", "")
-bump = os.environ["BUMP"]
+            base = os.environ["BASE"]
+            latest = os.environ.get("LATEST", "")
+            bump = os.environ["BUMP"]
 
-def parse(v):
-    m = re.match(r"^(\d+)\.(\d+)\.(\d+)$", v)
-    if not m:
-        return None
-    return tuple(int(x) for x in m.groups())
+            def parse(v):
+                m = re.match(r"^(\d+)\.(\d+)\.(\d+)$", v)
+                if not m:
+                    return None
+                return tuple(int(x) for x in m.groups())
 
-base_t = parse(base)
-latest_t = parse(latest) if latest else None
+            base_t = parse(base)
+            latest_t = parse(latest) if latest else None
 
-ref = base_t
-if latest_t and latest_t > ref:
-    ref = latest_t
+            ref = base_t
+            if latest_t and latest_t > ref:
+                ref = latest_t
 
-if bump == "none":
-    out = ref
-elif bump == "patch":
-    out = (ref[0], ref[1], ref[2] + 1)
-elif bump == "minor":
-    out = (ref[0], ref[1] + 1, 0)
-elif bump == "major":
-    out = (ref[0] + 1, 0, 0)
-else:
-    raise SystemExit(f"Unsupported bump: {bump}")
+            if bump == "none":
+                out = ref
+            elif bump == "patch":
+                out = (ref[0], ref[1], ref[2] + 1)
+            elif bump == "minor":
+                out = (ref[0], ref[1] + 1, 0)
+            elif bump == "major":
+                out = (ref[0] + 1, 0, 0)
+            else:
+                raise SystemExit(f"Unsupported bump: {bump}")
 
-print("{}.{}.{}".format(*out))
-PY
+            print("{}.{}.{}".format(*out))
+            PY
             )"
           fi
 
