@@ -29,6 +29,11 @@ The `Core/` directory contains the data layer and business logic for Charstack. 
 - **BacklogViewModel** — Calls `fetchGroupedBacklogTasks()`, `moveTask()`, `toggleTaskCompletion()`, `deleteTask()`, `updateTaskContent()`
 - Views never call TaskService directly — always through ViewModels.
 
+## Consumers
+- **TodayViewModel** — Calls `fetchTasks(for:in:)`, `fetchBacklogTasks()`, `performDayRollover()`, `toggleTaskCompletion()`, `deleteTask()`
+- **RegionFocusViewModel** — Calls `createTask()`, `fetchTasks(for:in:)`, `toggleTaskCompletion()`, `deleteTask()`, `updateTaskContent()`, `moveTask()`, `remainingCapacity()`
+- Views never call TaskService directly — always through ViewModels.
+
 ## What's Not Done
 - No `NotificationService` (Phase 3)
 - No `BackupService` (future)
