@@ -69,9 +69,6 @@ playground.xcworkspace
 docs/scratch/
 .gemini/
 
-# Claude local files (CLAUDE.md is committed, everything else is local)
-.claude/CLAUDE.local.md
-.claude/settings.json
-.claude/TODAY.md
-.claude/TODO.md
-.claude/for-your-attention.md
+# Claude local files
+.claude/**
+.claude/CLAUDE.md
