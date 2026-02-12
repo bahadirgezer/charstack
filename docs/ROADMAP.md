@@ -45,7 +45,7 @@ A minimal daily task manager built with SwiftUI and SwiftData on iOS 26+.
 **Version:** v0.1.0
 **Duration:** 2-3 weeks
 **Branch:** develop
-**Git Tag:** `release/v0.1.0` (on merge to main)
+**Git Tag:** `v0.1.0` (on merge to master)
 **Target Completion:** Early March 2026
 
 The MVP focuses on the core 1-3-5 daily task management experience with four regions and day rollover.
@@ -252,7 +252,7 @@ Before tagging v0.1.0, all items must be complete:
 **Version:** v0.5.0
 **Duration:** 1 week
 **Branch:** develop
-**Git Tag:** `release/v0.5.0`
+**Git Tag:** `v0.5.0`
 **Target Completion:** Mid-March 2026
 
 ### Task Model Enhancements (Deferred from MVP)
@@ -306,7 +306,7 @@ Current MVP rollover moves ALL incomplete active-region tasks to Backlog uncondi
 **Version:** v0.8.0
 **Duration:** 1 week
 **Branch:** develop
-**Git Tag:** `release/v0.8.0`
+**Git Tag:** `v0.8.0`
 **Target Completion:** Late March 2026
 
 ### Deliverables
@@ -342,7 +342,7 @@ Current MVP rollover moves ALL incomplete active-region tasks to Backlog uncondi
 **Version:** v1.0.0
 **Duration:** 1-2 weeks
 **Branch:** develop → main
-**Git Tag:** `release/v1.0.0`
+**Git Tag:** `v1.0.0`
 **Target Completion:** Early-mid April 2026
 
 ### UI/UX Polish
@@ -464,7 +464,7 @@ Current MVP rollover moves ALL incomplete active-region tasks to Backlog uncondi
 **Version:** v2.0.0
 **Duration:** 2-3 weeks
 **Branch:** develop
-**Git Tag:** `release/v2.0.0`
+**Git Tag:** `v2.0.0`
 **Target Completion:** TBD (post App Store launch)
 
 ### Authentication
@@ -511,7 +511,7 @@ Current MVP rollover moves ALL incomplete active-region tasks to Backlog uncondi
 - [ ] Demo account works for App Store reviewers
 - [ ] All App Store Review Guidelines satisfied
 
-**Tag:** `v2.0.0-accounts`
+**Tag:** `v2.0.0`
 
 ---
 
@@ -676,14 +676,18 @@ Use this checklist for each major release:
 
 ## Notes & Conventions
 
-- **Branches:** Main features on `develop`, hotfixes on `main`
-- **Commits:** Atomic, descriptive, reference issues (e.g., "feat: add task filtering #12")
-- **Git Tags:** Format `release/vX.Y.Z` for all releases
+- **Branches:** `develop` (default, active work) ← feature branches. `master` (stable releases) ← develop.
+- **Merge strategy:** Squash-merge for feature→develop. Merge commit for develop→master.
+- **Commits:** Conventional commits (`feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`)
+- **Git Tags:**
+  - `develop` releases: `vX.Y.Z-dev` (patch bump, prerelease)
+  - `master` releases: `vX.Y.0` (minor bump, full release)
+- **CI checks required:** Build & Test, Swift Lint & Format, Conventional Commit Title
 - **Testing:** Aim for ≥80% code coverage; prioritize data layer
 - **Documentation:** Maintain README, API docs, and architecture diagrams
-- **Review:** All merges to develop and main require code review
+- **Review:** All merges to develop and master require PR with passing checks
 
 ---
 
-**Last Updated:** February 9, 2026 (Week 3 complete)
+**Last Updated:** February 13, 2026
 **Maintained By:** Bahadır Gezer
