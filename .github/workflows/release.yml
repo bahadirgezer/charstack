@@ -34,11 +34,14 @@ jobs:
     environment: ${{ github.ref_name == 'master' && 'production' || 'development' }}
 
     steps:
+      # PAT is required to push the VERSION bump commit back through branch protection.
+      # RELEASE_TOKEN must be a fine-grained PAT with Contents: read+write scope.
+      # Falls back to GITHUB_TOKEN if RELEASE_TOKEN is not set (VERSION push will be skipped).
       - name: Checkout
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Select Xcode
         if: vars.XCODE_APP_PATH != ''
@@ -178,17 +181,23 @@ jobs:
           git push origin "${{ steps.ver.outputs.tag }}"
 
       # ── Update VERSION file ──
+      # Uses RELEASE_TOKEN (PAT) to push through branch protection.
+      # If this step fails, check that the RELEASE_TOKEN secret is set and not expired.
+      # RELEASE_TOKEN must be a fine-grained PAT with Contents: read+write scope.
       - name: Update VERSION file
         if: steps.ver.outputs.skip != 'true'
         run: |
           echo "${{ steps.ver.outputs.version }}" > VERSION
           if git diff --quiet VERSION; then
             echo "VERSION file already up to date."
-          else
-            git add VERSION
-            git commit -m "chore: bump VERSION to ${{ steps.ver.outputs.version }} [skip ci]"
-            git push origin HEAD:${{ github.ref_name }}
+            exit 0
           fi
+
+          git add VERSION
+          git commit -m "chore: bump VERSION to ${{ steps.ver.outputs.version }} [skip ci]"
+          echo "Pushing VERSION bump to ${{ github.ref_name }}..."
+          echo "If this fails, check that the RELEASE_TOKEN secret is set and has not expired."
+          git push origin HEAD:${{ github.ref_name }}
 
       # ── Build release archive ──
       - name: Resolve Xcode project
