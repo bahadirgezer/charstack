@@ -3,21 +3,29 @@
 ## What's Here
 
 ### AppCoordinator.swift
-`@Observable @MainActor` coordinator for NavigationStack-based navigation.
-- `Route` enum: currently only `.regionFocus(Region)`. Add more routes as screens are built (settings, task detail, etc.).
-- `navigationPath: NavigationPath` — backs the NavigationStack.
-- Methods: `navigate(to:)`, `pop()`, `popToRoot()`.
+`@Observable @MainActor` coordinator for app-wide navigation.
+- `Tab` enum: `.today`, `.backlog`. Controls `selectedTab` for the TabView.
+- `Route` enum: `.regionFocus(Region)`. Add more routes as screens are built (settings, task detail, etc.).
+- `navigationPath: NavigationPath` — backs the Today tab's NavigationStack.
+- Methods: `navigate(to:)`, `pop()`, `popToRoot()`, `showBacklog()`.
 - Injected via `.environment(coordinator)` in RootView.
 
 ### RootView.swift
-Root view of the app. Creates the coordinator, gets `modelContext` from environment, creates `TaskService`, sets up NavigationStack with destination mapping. This is where new `Route` cases get their view mapping.
+Root view of the app. Sets up the TabView with two tabs:
+- **Today tab**: `NavigationStack(path: coordinator.navigationPath)` with `TodayView` and `.navigationDestination` for `Route` values.
+- **Backlog tab**: Independent `NavigationStack` with `BacklogView`.
 
-**Important pattern:** `TaskService` is created as a computed property from `modelContext`. This means a new instance is created each time the body is evaluated, but that's fine because `TaskService` is stateless — it's just a thin wrapper around `ModelContext`.
+Contains `@Environment(\.scenePhase)` observer that triggers `performRolloverIfNeeded()` when app becomes active. Uses `@State private var lastRolloverDate: Date?` to prevent redundant same-day rollover calls.
 
-## What Changed (Week 2)
-- `CharstackApp.swift` was updated to use `RootView()` instead of `ContentView()`.
-- `ContentView.swift` still exists in the project root but is unused. Should be deleted in Week 3.
+**Important pattern:** `TaskService` is created as a computed property from `modelContext`. This is fine because `TaskService` is stateless — just a wrapper around `ModelContext`. If TaskService gains state, this needs to change.
+
+## What Changed (Week 3)
+- `AppCoordinator` gained `Tab` enum and `selectedTab` property for TabView.
+- `RootView` rewritten from single NavigationStack to TabView with per-tab NavigationStacks.
+- Added ScenePhase rollover observer with deduplication in RootView.
+- `ContentView.swift` still exists in the project root with a deprecation comment. It's unused.
 
 ## Gotchas
 - If `TaskService` gains state (e.g., caching), the computed property pattern in `RootView` won't work — you'd need to store it as `@State`.
-- When adding a TabView (Week 3?), the coordinator pattern may need adjustment — each tab might need its own NavigationStack, or a single coordinator could manage multiple paths.
+- Each tab has its own NavigationStack. The coordinator's `navigationPath` only applies to the Today tab.
+- Adding a Settings tab (Phase 3) should follow the same pattern: new `Tab` case + new tab in the TabView.

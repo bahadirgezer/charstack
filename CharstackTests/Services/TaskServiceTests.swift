@@ -626,4 +626,79 @@ struct TaskServiceTests {
 
         #expect(movedCount == 0)
     }
+
+    // MARK: - Grouped Backlog Tests
+
+    @Test("fetchGroupedBacklogTasks returns tasks grouped by date category")
+    func fetchGroupedBacklogTasksGroupsByDate() throws {
+        let service = try makeTaskService()
+        let today = Date()
+        let yesterday = today.addingDays(-1)
+        let lastWeek = today.addingDays(-10)
+
+        let todayTask = makeTask(
+            title: "Today Backlog",
+            region: .backlog,
+            bucket: .unassigned,
+            plannedDate: today
+        )
+        let yesterdayTask = makeTask(
+            title: "Yesterday Backlog",
+            region: .backlog,
+            bucket: .unassigned,
+            plannedDate: yesterday
+        )
+        let olderTask = makeTask(
+            title: "Older Backlog",
+            region: .backlog,
+            bucket: .unassigned,
+            plannedDate: lastWeek
+        )
+        try service.createTask(todayTask)
+        try service.createTask(yesterdayTask)
+        try service.createTask(olderTask)
+
+        let grouped = try service.fetchGroupedBacklogTasks()
+
+        // Should have at least 2 groups (today, yesterday — older depends on week boundary)
+        #expect(grouped.count >= 2)
+
+        // Verify groups are sorted (today before yesterday before older)
+        let groups = grouped.map(\.group)
+        #expect(groups == groups.sorted())
+
+        // Verify total task count
+        let totalCount = grouped.reduce(0) { $0 + $1.tasks.count }
+        #expect(totalCount == 3)
+    }
+
+    @Test("fetchGroupedBacklogTasks returns empty array when no backlog tasks exist")
+    func fetchGroupedBacklogTasksReturnsEmptyWhenNoBacklog() throws {
+        let service = try makeTaskService()
+
+        let grouped = try service.fetchGroupedBacklogTasks()
+
+        #expect(grouped.isEmpty)
+    }
+
+    @Test("fetchGroupedBacklogTasks excludes non-backlog tasks")
+    func fetchGroupedBacklogTasksExcludesNonBacklog() throws {
+        let service = try makeTaskService()
+
+        let morningTask = makeTask(title: "Morning", region: .morning, bucket: .must)
+        let backlogTask = makeTask(
+            title: "Backlog",
+            region: .backlog,
+            bucket: .unassigned,
+            plannedDate: Date()
+        )
+        try service.createTask(morningTask)
+        try service.createTask(backlogTask)
+
+        let grouped = try service.fetchGroupedBacklogTasks()
+        let totalCount = grouped.reduce(0) { $0 + $1.tasks.count }
+
+        #expect(totalCount == 1)
+        #expect(grouped.first?.tasks.first?.title == "Backlog")
+    }
 }

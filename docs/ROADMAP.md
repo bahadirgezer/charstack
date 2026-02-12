@@ -45,7 +45,7 @@ A minimal daily task manager built with SwiftUI and SwiftData on iOS 26+.
 **Version:** v0.1.0
 **Duration:** 2-3 weeks
 **Branch:** develop
-**Git Tag:** `release/v0.1.0` (on merge to main)
+**Git Tag:** `v0.1.0` (on merge to master)
 **Target Completion:** Early March 2026
 
 The MVP focuses on the core 1-3-5 daily task management experience with four regions and day rollover.
@@ -162,50 +162,65 @@ The MVP focuses on the core 1-3-5 daily task management experience with four reg
 
 ---
 
-### Week 3: Backlog & Day Rollover
+### Week 3: Backlog & Day Rollover ✅ COMPLETE
 
 **Objective:** Complete core workflow with overflow handling and daily refresh
 
-- [ ] BacklogView (Tab)
-  - [ ] List of incomplete tasks from previous days
-  - [ ] Filter by date created
-  - [ ] Sort options (date, region, priority)
-  - [ ] Bulk actions (select multiple, move to today)
+- [x] BacklogView (Tab)
+  - [x] List of incomplete tasks from previous days
+  - [x] Date grouping ("Today", "Yesterday", "This Week", "Older")
+  - [x] Move-to-region action with bucket selection
+  - [x] Edit, delete, completion toggle via context menu and swipe
+  - [ ] Filter by date created (deferred to Phase 2)
+  - [ ] Sort options (date, region, priority) (deferred to Phase 2)
+  - [ ] Bulk actions (select multiple, move to today) (deferred to Phase 2)
 
-- [ ] Move Gesture/Action
-  - [ ] Drag-and-drop or swipe action to move tasks to today
-  - [ ] Constraint validation before acceptance
-  - [ ] Reject feedback if region is full
-  - [ ] Success animation/haptic feedback
+- [x] Move Gesture/Action
+  - [x] Context menu to move tasks to region with bucket selection
+  - [x] Constraint validation before acceptance (1-3-5 enforcement)
+  - [x] Error feedback if region is full (alert display)
+  - [ ] Drag-and-drop gesture (deferred to Phase 4 polish)
+  - [ ] Success animation/haptic feedback (deferred to Phase 4 polish)
 
-- [ ] DayRolloverService
-  - [ ] Scheduled daily reset at midnight (or user-configurable time)
-  - [ ] Mark incomplete morning/afternoon/evening tasks as deferred
-  - [ ] Move deferred tasks to backlog automatically
-  - [ ] Preserve completed tasks in history
-  - [ ] Idempotent operation (safe to call multiple times)
+- [x] Day Rollover (integrated into TaskService)
+  - [x] Triggered on app launch via `.task` modifier
+  - [x] Triggered on foreground return via `ScenePhase` observer in RootView
+  - [x] Mark incomplete morning/afternoon/evening tasks as deferred
+  - [x] Move deferred tasks to backlog automatically
+  - [x] Preserve completed tasks in history
+  - [x] Idempotent operation (safe to call multiple times)
+  - [ ] User-configurable rollover time (deferred to Phase 3 Settings)
 
-- [ ] Empty States
-  - [ ] "No tasks for today" message with CTA
-  - [ ] "Backlog is empty" message
-  - [ ] "Day complete" celebration view
-  - [ ] Consistent empty state imagery/messaging
+- [x] Empty States
+  - [x] "No tasks for today" message with CTA (EmptyStateView)
+  - [x] "Backlog is empty" message (EmptyStateView)
+  - [x] Consistent empty state component (Shared/Components/EmptyStateView.swift)
+  - [ ] "Day complete" celebration view (deferred to Phase 4 polish)
 
-- [ ] Persistence & App Lifecycle
-  - [ ] Handle app backgrounding/foregrounding
-  - [ ] Trigger day rollover check on app launch
-  - [ ] Persist rollover state to prevent duplicates
-  - [ ] Handle edge cases (time zone changes, device sleep)
+- [x] Persistence & App Lifecycle
+  - [x] Handle app backgrounding/foregrounding (ScenePhase observer)
+  - [x] Trigger day rollover check on app launch
+  - [x] Track last rollover date to prevent redundant calls
+  - [ ] Handle edge cases (time zone changes, device sleep) (deferred)
 
-- [ ] Integration Testing
-  - [ ] End-to-end flow: add task → complete → navigate → day rolls over
-  - [ ] Backlog operations: move tasks, defer handling
-  - [ ] State consistency across views
+- [x] Navigation
+  - [x] TabView with Today and Backlog tabs
+  - [x] AppCoordinator updated with Tab enum and selectedTab state
+  - [x] NavigationStack per tab for proper navigation hierarchy
+
+- [x] Shared Components
+  - [x] EmptyStateView extracted to Shared/Components/
+  - [x] TaskEditSheet extracted from RegionFocusView to Shared/Components/
+
+- [x] Unit Tests (86 tests, all passing — up from 38)
+  - [x] BacklogDateGroupTests (7 tests) — date grouping, sorting, display names
+  - [x] TaskServiceTests — 3 new grouped backlog tests
 
 **Deliverables:**
-- Complete daily workflow working end-to-end
-- Backlog populated with yesterday's incomplete tasks
-- Day rollover functioning reliably
+- ✅ Complete daily workflow working end-to-end
+- ✅ Backlog populated with yesterday's incomplete tasks via date-grouped sections
+- ✅ Day rollover functioning reliably on launch and foreground return
+- ✅ TabView navigation with Today and Backlog tabs
 
 ---
 
@@ -237,7 +252,7 @@ Before tagging v0.1.0, all items must be complete:
 **Version:** v0.5.0
 **Duration:** 1 week
 **Branch:** develop
-**Git Tag:** `release/v0.5.0`
+**Git Tag:** `v0.5.0`
 **Target Completion:** Mid-March 2026
 
 ### Task Model Enhancements (Deferred from MVP)
@@ -291,7 +306,7 @@ Current MVP rollover moves ALL incomplete active-region tasks to Backlog uncondi
 **Version:** v0.8.0
 **Duration:** 1 week
 **Branch:** develop
-**Git Tag:** `release/v0.8.0`
+**Git Tag:** `v0.8.0`
 **Target Completion:** Late March 2026
 
 ### Deliverables
@@ -327,7 +342,7 @@ Current MVP rollover moves ALL incomplete active-region tasks to Backlog uncondi
 **Version:** v1.0.0
 **Duration:** 1-2 weeks
 **Branch:** develop → main
-**Git Tag:** `release/v1.0.0`
+**Git Tag:** `v1.0.0`
 **Target Completion:** Early-mid April 2026
 
 ### UI/UX Polish
@@ -449,7 +464,7 @@ Current MVP rollover moves ALL incomplete active-region tasks to Backlog uncondi
 **Version:** v2.0.0
 **Duration:** 2-3 weeks
 **Branch:** develop
-**Git Tag:** `release/v2.0.0`
+**Git Tag:** `v2.0.0`
 **Target Completion:** TBD (post App Store launch)
 
 ### Authentication
@@ -496,7 +511,7 @@ Current MVP rollover moves ALL incomplete active-region tasks to Backlog uncondi
 - [ ] Demo account works for App Store reviewers
 - [ ] All App Store Review Guidelines satisfied
 
-**Tag:** `v2.0.0-accounts`
+**Tag:** `v2.0.0`
 
 ---
 
@@ -661,14 +676,18 @@ Use this checklist for each major release:
 
 ## Notes & Conventions
 
-- **Branches:** Main features on `develop`, hotfixes on `main`
-- **Commits:** Atomic, descriptive, reference issues (e.g., "feat: add task filtering #12")
-- **Git Tags:** Format `release/vX.Y.Z` for all releases
+- **Branches:** `develop` (default, active work) ← feature branches. `master` (stable releases) ← develop.
+- **Merge strategy:** Squash-merge for feature→develop. Merge commit for develop→master.
+- **Commits:** Conventional commits (`feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`)
+- **Git Tags:**
+  - `develop` releases: `vX.Y.Z-dev` (patch bump, prerelease)
+  - `master` releases: `vX.Y.0` (minor bump, full release)
+- **CI checks required:** Build & Test, Swift Lint & Format, Conventional Commit Title
 - **Testing:** Aim for ≥80% code coverage; prioritize data layer
 - **Documentation:** Maintain README, API docs, and architecture diagrams
-- **Review:** All merges to develop and main require code review
+- **Review:** All merges to develop and master require PR with passing checks
 
 ---
 
-**Last Updated:** February 9, 2026 (Week 2 complete)
+**Last Updated:** February 13, 2026
 **Maintained By:** Bahadır Gezer

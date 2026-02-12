@@ -7,7 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **CI/CD & Release Process**
+  - Rewrite `release.yml` — branch-aware versioning (`-dev` suffix for develop, clean tags for master), GitHub Environments (`development`/`production`), auto-commit VERSION file, prerelease flag for develop releases
+  - Move `fmt-lint.sh` from `.github/scripts/` to `scripts/` (local dev tools separated from CI scripts)
+  - Add `.github/pull_request_template.md` with checklist
+  - Add `CODEOWNERS` file
+  - Update `ROADMAP.md` tag format references (`vX.Y.Z` instead of `release/vX.Y.Z`)
+
 ### Added
+- **Backlog & Day Rollover (Phase 1 Week 3)**
+  - `BacklogView` + `BacklogViewModel` — dedicated backlog tab with tasks grouped by date ("Today", "Yesterday", "This Week", "Older")
+  - `BacklogDateGroup` enum — categorizes backlog tasks by relative date with display names and SF Symbols
+  - `TaskService.fetchGroupedBacklogTasks()` — grouped query returning backlog tasks organized by date category
+  - `EmptyStateView` shared component — reusable empty state with icon, title, and optional subtitle
+  - `TaskEditSheet` extracted to `Shared/Components/` — shared between RegionFocusView and BacklogView
+  - `TabView` navigation with Today and Backlog tabs
+  - `AppCoordinator.Tab` enum — manages tab selection state
+  - `ScenePhase` observer in `RootView` — triggers day rollover when app returns from background
+  - Last rollover date tracking to avoid redundant rollover calls within the same day
+  - Move-to-region action from backlog with bucket selection and 1-3-5 constraint validation
+  - BacklogDateGroupTests (7 tests) — date grouping, sorting, display names, system images
+  - TaskServiceTests — 3 new grouped backlog tests (grouping, empty, exclusion)
+
+### Changed
+- `TodayView` now shows only active regions (Morning, Afternoon, Evening) — backlog is its own tab
+- `TodayViewModel` no longer fetches backlog tasks (separated to BacklogViewModel)
+- `RegionFocusView` uses shared `EmptyStateView` instead of inline empty state
+- `TodayView` uses shared `EmptyStateView` for empty day message
+- `AppCoordinator` updated with `Tab` enum and `selectedTab` state for TabView support
+- `RootView` restructured from single NavigationStack to TabView with per-tab NavigationStacks
+- Unit test count: 86 tests (up from previous count), all passing
+
 - **UI Layer (Phase 1 Week 2)**
   - `TodayView` + `TodayViewModel` — main dashboard with four region cards, daily progress bar, rollover banner
   - `RegionCard` component — region summary with icon, must-do title, bucket fill counts, progress bar
