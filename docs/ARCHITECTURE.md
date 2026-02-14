@@ -1,10 +1,10 @@
-# Charstack Architecture Document
+# Charflow Architecture Document
 
 ## Overview
 
-Charstack is a minimal daily task manager for iOS designed with a focus on simplicity, productivity, and intentional work. Users organize tasks into 4 daily regions (Morning, Afternoon, Evening, Backlog) and apply the 1-3-5 rule per region: 1 must task, 3 complementary tasks, and 5 miscellaneous tasks.
+Charflow is a minimal daily task manager for iOS designed with a focus on simplicity, productivity, and intentional work. Users organize tasks into 4 daily regions (Morning, Afternoon, Evening, Backlog) and apply the 1-3-5 rule per region: 1 must task, 3 complementary tasks, and 5 miscellaneous tasks.
 
-This document outlines the complete technical architecture, design patterns, and implementation strategy for Charstack.
+This document outlines the complete technical architecture, design patterns, and implementation strategy for Charflow.
 
 ---
 

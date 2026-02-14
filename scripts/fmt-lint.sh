@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# scripts/fmt-lint.sh
 #
 # Runs auto-fixers first (swift-format + swiftlint fix), then runs the exact
 # checks your GitHub workflow runs (swift-format lint --strict + swiftlint lint --strict).
