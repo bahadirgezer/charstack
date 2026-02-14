@@ -1,7 +1,7 @@
-# Charstack Requirements Document
+# Charflow Requirements Document
 
 ## Document Information
-- **Product**: Charstack iOS App (MVP)
+- **Product**: Charflow iOS App (MVP)
 - **Version**: 1.0
 - **Last Updated**: February 8, 2026
 - **Status**: Ready for Development
@@ -12,7 +12,7 @@
 
 ## 1. Executive Summary
 
-**Charstack** is a minimal daily task manager designed to combat task list bloat by organizing work into four time-of-day regions—Morning, Afternoon, Evening, and Backlog—using a 1–3–5 constraint structure. The app emphasizes focus, intentionality, and consistent task completion.
+**Charflow** is a minimal daily task manager designed to combat task list bloat by organizing work into four time-of-day regions—Morning, Afternoon, Evening, and Backlog—using a 1–3–5 constraint structure. The app emphasizes focus, intentionality, and consistent task completion.
 
 ### Core Value Proposition
 - Replace infinite backlogs with time-of-day planning

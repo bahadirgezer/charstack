@@ -85,8 +85,8 @@ jobs:
 
             # Find the latest tag for THIS branch type
             if [[ "$REF_NAME" == "develop" ]]; then
-              # develop tags: v1.2.3-dev
-              LATEST_TAG="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*-dev' --sort=-v:refname | head -1 || true)"
+              # develop tags: v1.2.3
+              LATEST_TAG="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -1 || true)"
             else
               # master tags: v1.2.0 (no suffix)
               LATEST_TAG="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | grep -v '\-' | head -1 || true)"
@@ -144,7 +144,7 @@ jobs:
 
           # Build the tag name (develop gets -dev suffix)
           if [[ "$REF_NAME" == "develop" ]]; then
-            TAG="v${FINAL_VERSION}-dev"
+            TAG="v${FINAL_VERSION}"
           else
             TAG="v${FINAL_VERSION}"
           fi
@@ -241,7 +241,7 @@ jobs:
 
           # Find previous tag for the same branch type
           if [[ "$REF_NAME" == "develop" ]]; then
-            PREV_TAG="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*-dev' --sort=-v:refname \
+            PREV_TAG="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname \
               | grep -vx "$TAG" | head -1 || true)"
           else
             PREV_TAG="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname \
