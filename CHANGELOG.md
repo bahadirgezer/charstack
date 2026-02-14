@@ -9,11 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **CI/CD & Release Process**
-  - Rewrite `release.yml` — branch-aware versioning (`-dev` suffix for develop, clean tags for master), GitHub Environments (`development`/`production`), auto-commit VERSION file, prerelease flag for develop releases
+  - Rewrite `release.yml` — branch-aware versioning, GitHub Environments (`development`/`production`), auto-commit VERSION file, prerelease flag for develop releases
   - Move `fmt-lint.sh` from `.github/scripts/` to `scripts/` (local dev tools separated from CI scripts)
   - Add `.github/pull_request_template.md` with checklist
   - Add `CODEOWNERS` file
   - Update `ROADMAP.md` tag format references (`vX.Y.Z` instead of `release/vX.Y.Z`)
+  - Commit `Package.resolved` (was gitignored; required by Xcode Cloud)
+  - Rename app display name from "Charstack" to "Charflow" (`CFBundleDisplayName`)
+  - Update README and docs to use "Charflow" as the product name
 
 ### Added
 - **Backlog & Day Rollover (Phase 1 Week 3)**

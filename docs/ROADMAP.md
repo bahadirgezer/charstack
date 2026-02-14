@@ -1,4 +1,4 @@
-# Charstack iOS Development Roadmap
+# Charflow iOS Development Roadmap
 
 A minimal daily task manager built with SwiftUI and SwiftData on iOS 26+.
 

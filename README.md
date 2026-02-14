@@ -1,4 +1,4 @@
-# Charstack
+# Charflow
 
 A minimal daily task manager for iOS. Four regions, the 1-3-5 rule, and nothing else.
 
@@ -11,11 +11,11 @@ A minimal daily task manager for iOS. Four regions, the 1-3-5 rule, and nothing 
 
 ## The idea
 
-Most task apps become infinite lists. Charstack doesn't let that happen.
+Most task apps become infinite lists. Charflow doesn't let that happen.
 
 Your day is split into **Morning**, **Afternoon**, **Evening**, and **Backlog**. Each active region follows the **1-3-5 rule**: 1 must-do, up to 3 complementary tasks, up to 5 misc. That's it. Anything unfinished rolls to Backlog at the end of the day.
 
-> "Char" (چهار) = Persian for **4**. Four regions, one focused day.
+> "Char" (چهار) = Persian for **4**. Four regions, one focused flow.
 
 ## Tech
 
