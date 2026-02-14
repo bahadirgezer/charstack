@@ -31,6 +31,22 @@ open charstack/Charstack.xcodeproj
 
 Requires Xcode 16+ and macOS 14+.
 
+## Versioning
+
+- `VERSION` is the source of truth for semantic app version (`MARKETING_VERSION` / `CFBundleShortVersionString`).
+- `CURRENT_PROJECT_VERSION` (`CFBundleVersion`) should be a monotonically increasing build number.
+- Sync project settings from `VERSION`:
+
+```bash
+./scripts/sync-xcode-version.sh
+```
+
+- Sync version and set a local build number:
+
+```bash
+./scripts/sync-xcode-version.sh --build-number 42
+```
+
 ## Status
 
 MVP in progress. Not yet on the App Store.
