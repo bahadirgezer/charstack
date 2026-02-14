@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# scripts/fmt-lint.sh
+# .github/scripts/fmt-lint.sh
 #
 # Runs auto-fixers first (swift-format + swiftlint fix), then runs the exact
 # checks your GitHub workflow runs (swift-format lint --strict + swiftlint lint --strict).
 #
 # Run from repo root:
-#   bash scripts/fmt-lint.sh
+#   bash .github/scripts/fmt-lint.sh
 #
 # Exit codes:
 #   0  -> clean (would pass GH workflow)

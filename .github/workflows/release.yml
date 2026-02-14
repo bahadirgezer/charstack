@@ -88,8 +88,8 @@ jobs:
 
             # Find the latest tag in this branch release stream
             if [[ "$REF_NAME" == "develop" ]]; then
-              # develop tags: v1.2.3-dev
-              LATEST_TAG="$(git tag --merged HEAD --list 'v[0-9]*.[0-9]*.[0-9]*-dev' --sort=-v:refname | head -1 || true)"
+              # develop tags: v1.2.3
+              LATEST_TAG="$(git tag --merged HEAD --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -1 || true)"
             else
               # master tags: v1.2.0 (no suffix), reachable from master
               LATEST_TAG="$(git tag --merged HEAD --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | grep -v '\-' | head -1 || true)"
@@ -97,7 +97,7 @@ jobs:
 
             # Strip prefix and suffix to get bare version
             LATEST_VERSION="${LATEST_TAG#v}"
-            LATEST_VERSION="${LATEST_VERSION%-dev}"
+            LATEST_VERSION="${LATEST_VERSION%}"
 
             # Also read VERSION file as fallback
             BASE="$(tr -d '[:space:]' < VERSION)"
@@ -145,9 +145,8 @@ jobs:
             )"
           fi
 
-          # Build the tag name (develop gets -dev suffix)
           if [[ "$REF_NAME" == "develop" ]]; then
-            TAG="v${FINAL_VERSION}-dev"
+            TAG="v${FINAL_VERSION}"
           else
             TAG="v${FINAL_VERSION}"
           fi
