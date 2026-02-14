@@ -3,6 +3,8 @@ name: Release
 on:
   push:
     branches: [master, develop]
+    paths-ignore:
+      - VERSION
   workflow_dispatch:
     inputs:
       bump:
@@ -54,6 +56,7 @@ jobs:
         id: ver
         run: |
           REF_NAME="${{ github.ref_name }}"
+          EVENT_NAME="${{ github.event_name }}"
           INPUT_BUMP="${{ github.event.inputs.bump || 'auto' }}"
           INPUT_OVERRIDE="${{ github.event.inputs.version_override || '' }}"
 
@@ -83,13 +86,13 @@ jobs:
               exit 0
             fi
 
-            # Find the latest tag for THIS branch type
+            # Find the latest tag in this branch release stream
             if [[ "$REF_NAME" == "develop" ]]; then
-              # develop tags: v1.2.3
-              LATEST_TAG="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -1 || true)"
+              # develop tags: v1.2.3-dev
+              LATEST_TAG="$(git tag --merged HEAD --list 'v[0-9]*.[0-9]*.[0-9]*-dev' --sort=-v:refname | head -1 || true)"
             else
-              # master tags: v1.2.0 (no suffix)
-              LATEST_TAG="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | grep -v '\-' | head -1 || true)"
+              # master tags: v1.2.0 (no suffix), reachable from master
+              LATEST_TAG="$(git tag --merged HEAD --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | grep -v '\-' | head -1 || true)"
             fi
 
             # Strip prefix and suffix to get bare version
@@ -144,9 +147,20 @@ jobs:
 
           # Build the tag name (develop gets -dev suffix)
           if [[ "$REF_NAME" == "develop" ]]; then
-            TAG="v${FINAL_VERSION}"
+            TAG="v${FINAL_VERSION}-dev"
           else
             TAG="v${FINAL_VERSION}"
+          fi
+
+          # Skip push-triggered releases when there are no content changes
+          # since the previous tag in this stream (for example empty sync merges).
+          if [[ "$EVENT_NAME" == "push" && -n "$LATEST_TAG" ]]; then
+            if git diff --quiet "${LATEST_TAG}..HEAD" -- . ":(exclude)VERSION"; then
+              echo "No content changes since ${LATEST_TAG}; skipping release."
+              echo "prev_tag=$LATEST_TAG" >> "$GITHUB_OUTPUT"
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
           fi
 
           # Check tag doesn't already exist
@@ -157,6 +171,7 @@ jobs:
 
           echo "version=$FINAL_VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "prev_tag=$LATEST_TAG" >> "$GITHUB_OUTPUT"
           echo "skip=false" >> "$GITHUB_OUTPUT"
 
           # Determine if this is a prerelease (develop) or full release (master)
@@ -170,34 +185,6 @@ jobs:
       - name: Skip release
         if: steps.ver.outputs.skip == 'true'
         run: echo "Bump is 'none' — skipping release."
-
-      # ── Create & push tag ──
-      - name: Create tag
-        if: steps.ver.outputs.skip != 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "${{ steps.ver.outputs.tag }}" -m "Release ${{ steps.ver.outputs.tag }}"
-          git push origin "${{ steps.ver.outputs.tag }}"
-
-      # ── Update VERSION file ──
-      # Uses RELEASE_TOKEN (PAT) to push through branch protection.
-      # If this step fails, check that the RELEASE_TOKEN secret is set and not expired.
-      # RELEASE_TOKEN must be a fine-grained PAT with Contents: read+write scope.
-      - name: Update VERSION file
-        if: steps.ver.outputs.skip != 'true'
-        run: |
-          echo "${{ steps.ver.outputs.version }}" > VERSION
-          if git diff --quiet VERSION; then
-            echo "VERSION file already up to date."
-            exit 0
-          fi
-
-          git add VERSION
-          git commit -m "chore: bump VERSION to ${{ steps.ver.outputs.version }} [skip ci]"
-          echo "Pushing VERSION bump to ${{ github.ref_name }}..."
-          echo "If this fails, check that the RELEASE_TOKEN secret is set and has not expired."
-          git push origin HEAD:${{ github.ref_name }}
 
       # ── Build release archive ──
       - name: Resolve Xcode project
@@ -237,16 +224,7 @@ jobs:
         if: steps.ver.outputs.skip != 'true'
         run: |
           TAG="${{ steps.ver.outputs.tag }}"
-          REF_NAME="${{ github.ref_name }}"
-
-          # Find previous tag for the same branch type
-          if [[ "$REF_NAME" == "develop" ]]; then
-            PREV_TAG="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname \
-              | grep -vx "$TAG" | head -1 || true)"
-          else
-            PREV_TAG="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname \
-              | grep -v '\-' | grep -vx "$TAG" | head -1 || true)"
-          fi
+          PREV_TAG="${{ steps.ver.outputs.prev_tag }}"
 
           {
             echo "# Changelog — $TAG"
@@ -298,6 +276,15 @@ jobs:
 
           exit $status
 
+      # ── Create & push tag ──
+      - name: Create tag
+        if: steps.ver.outputs.skip != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.ver.outputs.tag }}" -m "Release ${{ steps.ver.outputs.tag }}"
+          git push origin "${{ steps.ver.outputs.tag }}"
+
       # ── Create GitHub Release ──
       - name: Create GitHub Release
         if: steps.ver.outputs.skip != 'true'
@@ -313,3 +300,31 @@ jobs:
             build/CHANGELOG.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── Update VERSION file (best-effort) ──
+      # Uses RELEASE_TOKEN (PAT) to push through branch protection.
+      # If the branch moved while this run was in progress, this step is skipped.
+      - name: Update VERSION file
+        if: steps.ver.outputs.skip != 'true'
+        run: |
+          echo "${{ steps.ver.outputs.version }}" > VERSION
+          if git diff --quiet VERSION; then
+            echo "VERSION file already up to date."
+            exit 0
+          fi
+
+          BRANCH="${{ github.ref_name }}"
+          REMOTE_HEAD="$(git ls-remote --heads origin "$BRANCH" | awk '{print $1}')"
+          if [[ -n "$REMOTE_HEAD" && "$REMOTE_HEAD" != "$GITHUB_SHA" ]]; then
+            echo "::warning::${BRANCH} moved to ${REMOTE_HEAD} while this run targets ${GITHUB_SHA}; skipping VERSION bump push."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add VERSION
+          git commit -m "chore: bump VERSION to ${{ steps.ver.outputs.version }} [skip ci]"
+          echo "Pushing VERSION bump to ${BRANCH}..."
+          if ! git push origin "HEAD:${BRANCH}"; then
+            echo "::warning::Failed to push VERSION bump commit. Release is still published."
+          fi
