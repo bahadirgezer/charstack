@@ -1,0 +1,36 @@
+name: TestFlight Upload (Manual)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  upload:
+    runs-on: [self-hosted, macOS, ARM64, bgpro-charstack]
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.APPSTORE_CERTIFICATES_FILE_BASE64 }}
+          p12-password: ${{ secrets.APPSTORE_CERTIFICATES_PASSWORD }}
+
+      - uses: apple-actions/download-provisioning-profiles@v1
+        with:
+          bundle-id: com.bgzxr.Charstack
+          profile-type: IOS_APP_STORE
+          issuer-id: ${{ vars.APPSTORE_ISSUER_ID }}
+          api-key-id: ${{ vars.APPSTORE_API_KEY_ID }}
+          api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+
+      - run: |
+          xcodebuild -project Charstack.xcodeproj -scheme Charstack \
+            -configuration Release -destination 'generic/platform=iOS' \
+            -archivePath build/Charstack.xcarchive clean archive
+          # export ipa...
+          # then upload:
+      - uses: apple-actions/upload-testflight-build@v3
+        with:
+          app-path: build/Charstack.ipa
+          issuer-id: ${{ vars.APPSTORE_ISSUER_ID }}
+          api-key-id: ${{ vars.APPSTORE_API_KEY_ID }}
+          api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
