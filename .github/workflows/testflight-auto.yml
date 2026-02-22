@@ -170,7 +170,7 @@ jobs:
           APPLE_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
 
       - name: Import code-signing certificate
-        uses: apple-actions/import-codesign-certs@v3
+        uses: apple-actions/import-codesign-certs@v6
         with:
           p12-file-base64: ${{ secrets.APPLE_DIST_CERT_P12_BASE64 }}
           p12-password: ${{ secrets.APPLE_DIST_CERT_PASSWORD }}
