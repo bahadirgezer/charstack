@@ -57,6 +57,7 @@ MVP in progress. Not yet on the App Store.
 - [Requirements](docs/REQUIREMENTS.md) — functional specs
 - [Architecture](docs/ARCHITECTURE.md) — technical decisions
 - [Roadmap](docs/ROADMAP.md) — what's next
+- [App Store Connect Pipeline](docs/appstore-connect/pipeline.md) — TestFlight and App Review automation
 - [Changelog](CHANGELOG.md) — version history
 
 ## License

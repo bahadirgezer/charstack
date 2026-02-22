@@ -1,0 +1,366 @@
+name: TestFlight Auto Upload
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to upload (optional, e.g. v1.2.3)"
+        required: false
+        type: string
+      build_number:
+        description: "Override CFBundleVersion (optional positive integer)"
+        required: false
+        type: string
+      whats_new:
+        description: "Override TestFlight What to Test text"
+        required: false
+        type: string
+      dry_run:
+        description: "Skip upload/API mutations but run signing/build/export"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: testflight-upload-${{ github.event_name == 'release' && github.event.release.tag_name || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  upload:
+    name: Upload to TestFlight
+    runs-on: [self-hosted, macOS, ARM64, bgpro-charstack]
+    timeout-minutes: 90
+
+    env:
+      ASC_APP_ID: ${{ vars.ASC_APP_ID }}
+      ASC_INTERNAL_BETA_GROUP_ID: ${{ vars.ASC_INTERNAL_BETA_GROUP_ID }}
+      ASC_PRIMARY_LOCALE: ${{ vars.ASC_PRIMARY_LOCALE || 'en-US' }}
+      ASC_BUNDLE_ID: ${{ vars.ASC_BUNDLE_ID || 'com.bgzxr.Charstack' }}
+      APPSTORE_API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+      APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+      APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
+
+    steps:
+      - name: Checkout release tag
+        if: github.event_name == 'release'
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Checkout dispatch tag
+        if: github.event_name == 'workflow_dispatch' && inputs.tag != ''
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Checkout default branch
+        if: github.event_name == 'workflow_dispatch' && inputs.tag == ''
+        uses: actions/checkout@v6
+
+      - name: Select Xcode
+        if: vars.XCODE_APP_PATH != ''
+        run: |
+          sudo xcode-select -s "${{ vars.XCODE_APP_PATH }}"
+          xcodebuild -version
+
+      - name: Resolve Xcode project
+        id: xcode
+        run: .github/scripts/resolve-xcode-project.sh
+        env:
+          INPUT_WORKSPACE: ${{ vars.XCODE_WORKSPACE }}
+          INPUT_PROJECT: ${{ vars.XCODE_PROJECT }}
+          INPUT_SCHEME: ${{ vars.XCODE_SCHEME }}
+
+      - name: Prepare build metadata
+        id: meta
+        env:
+          RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || '' }}
+          RELEASE_BODY: ${{ github.event_name == 'release' && github.event.release.body || '' }}
+          RELEASE_PRERELEASE: ${{ github.event_name == 'release' && github.event.release.prerelease || false }}
+          INPUT_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || '' }}
+          INPUT_BUILD_NUMBER: ${{ github.event_name == 'workflow_dispatch' && inputs.build_number || '' }}
+          INPUT_WHATS_NEW: ${{ github.event_name == 'workflow_dispatch' && inputs.whats_new || '' }}
+          INPUT_DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+        run: |
+          set -euo pipefail
+          mkdir -p build
+
+          tag="${RELEASE_TAG:-${INPUT_TAG:-}}"
+          if [[ -z "$tag" ]]; then
+            tag="$(git describe --tags --exact-match 2>/dev/null || true)"
+          fi
+
+          if [[ "$tag" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            marketing_version="${BASH_REMATCH[1]}"
+          else
+            marketing_version="$(tr -d '[:space:]' < VERSION)"
+          fi
+
+          if ! [[ "$marketing_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "error: unable to determine MARKETING_VERSION" >&2
+            exit 1
+          fi
+
+          build_number="${INPUT_BUILD_NUMBER:-}"
+          if [[ -z "$build_number" ]]; then
+            build_number="${GITHUB_RUN_NUMBER}"
+          fi
+          if ! [[ "$build_number" =~ ^[0-9]+$ ]] || [[ "$build_number" -le 0 ]]; then
+            echo "error: build number must be a positive integer (got '$build_number')" >&2
+            exit 1
+          fi
+
+          prerelease="false"
+          if [[ "${RELEASE_PRERELEASE}" == "true" ]]; then
+            prerelease="true"
+          fi
+
+          dry_run="false"
+          if [[ "${INPUT_DRY_RUN}" == "true" ]]; then
+            dry_run="true"
+          fi
+
+          if [[ -n "${INPUT_WHATS_NEW}" ]]; then
+            what_to_test="${INPUT_WHATS_NEW}"
+          elif [[ -n "${RELEASE_BODY}" ]]; then
+            what_to_test="${RELEASE_BODY}"
+          else
+            what_to_test="$(git log --no-merges --pretty=format:'- %s' -n 20)"
+          fi
+
+          python3 - "$what_to_test" -c 'import sys; text=sys.argv[1].strip() or "Internal beta build for validation."; print(text[:4000])' > build/what_to_test.txt
+
+          {
+            echo "tag=$tag"
+            echo "marketing_version=$marketing_version"
+            echo "build_number=$build_number"
+            echo "prerelease=$prerelease"
+            echo "dry_run=$dry_run"
+            echo "what_to_test_file=build/what_to_test.txt"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Validate required configuration
+        run: |
+          set -euo pipefail
+          required=(
+            ASC_APP_ID
+            ASC_INTERNAL_BETA_GROUP_ID
+            APPSTORE_API_PRIVATE_KEY
+            APPSTORE_API_KEY_ID
+            APPSTORE_API_ISSUER_ID
+            APPLE_DIST_CERT_P12_BASE64
+            APPLE_DIST_CERT_PASSWORD
+            APPLE_KEYCHAIN_PASSWORD
+            APPSTORE_EXPORT_OPTIONS_BASE64
+          )
+          for name in "${required[@]}"; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "error: missing required secret/var: $name" >&2
+              exit 1
+            fi
+          done
+        env:
+          APPLE_DIST_CERT_P12_BASE64: ${{ secrets.APPLE_DIST_CERT_P12_BASE64 }}
+          APPLE_DIST_CERT_PASSWORD: ${{ secrets.APPLE_DIST_CERT_PASSWORD }}
+          APPLE_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
+          APPSTORE_EXPORT_OPTIONS_BASE64: ${{ secrets.APPSTORE_EXPORT_OPTIONS_BASE64 }}
+
+      - name: Import code-signing certificate
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.APPLE_DIST_CERT_P12_BASE64 }}
+          p12-password: ${{ secrets.APPLE_DIST_CERT_PASSWORD }}
+          keychain-password: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
+
+      - name: Download provisioning profiles
+        uses: apple-actions/download-provisioning-profiles@v1
+        with:
+          bundle-id: ${{ env.ASC_BUNDLE_ID }}
+          profile-type: IOS_APP_STORE
+          issuer-id: ${{ secrets.APPSTORE_API_ISSUER_ID }}
+          api-key-id: ${{ secrets.APPSTORE_API_KEY_ID }}
+          api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+
+      - name: Build signed archive
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          xcodebuild \
+            "${{ steps.xcode.outputs.flag }}" "${{ steps.xcode.outputs.path }}" \
+            -scheme "${{ steps.xcode.outputs.scheme }}" \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath build/Charstack.xcarchive \
+            MARKETING_VERSION="${{ steps.meta.outputs.marketing_version }}" \
+            CURRENT_PROJECT_VERSION="${{ steps.meta.outputs.build_number }}" \
+            clean archive
+
+      - name: Export IPA
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          printf '%s' "${{ secrets.APPSTORE_EXPORT_OPTIONS_BASE64 }}" | { base64 --decode 2>/dev/null || base64 -D; } > build/ExportOptions.plist
+          xcodebuild -exportArchive \
+            -archivePath build/Charstack.xcarchive \
+            -exportPath build \
+            -exportOptionsPlist build/ExportOptions.plist
+
+          ipa_path="$(find build -maxdepth 1 -name '*.ipa' | head -n 1 || true)"
+          if [[ -z "$ipa_path" ]]; then
+            echo "error: export did not produce an .ipa" >&2
+            exit 1
+          fi
+          echo "ipa_path=$ipa_path" >> "$GITHUB_OUTPUT"
+        id: export
+
+      - name: Generate JWT (dry-run validation)
+        run: |
+          set -euo pipefail
+          token="$(scripts/appstore/jwt.sh)"
+          if [[ -z "$token" ]]; then
+            echo "error: empty JWT" >&2
+            exit 1
+          fi
+          echo "JWT generation succeeded."
+
+      - name: Install App Store Connect private key for Transporter
+        if: steps.meta.outputs.dry_run != 'true'
+        run: |
+          set -euo pipefail
+          key_dir="$HOME/.appstoreconnect/private_keys"
+          key_file="$key_dir/AuthKey_${APPSTORE_API_KEY_ID}.p8"
+          mkdir -p "$key_dir"
+          chmod 700 "$HOME/.appstoreconnect" "$key_dir"
+          printf '%s\n' "$APPSTORE_API_PRIVATE_KEY" > "$key_file"
+          chmod 600 "$key_file"
+
+      - name: Upload IPA via iTMSTransporter
+        if: steps.meta.outputs.dry_run != 'true'
+        run: |
+          set -euo pipefail
+          cmd=(
+            xcrun iTMSTransporter
+            -m upload
+            -assetFile "${{ steps.export.outputs.ipa_path }}"
+            -apiKey "$APPSTORE_API_KEY_ID"
+            -apiIssuer "$APPSTORE_API_ISSUER_ID"
+            -v informational
+          )
+          if [[ -n "${APPSTORE_PROVIDER_SHORT_NAME:-}" ]]; then
+            cmd+=( -itc_provider "$APPSTORE_PROVIDER_SHORT_NAME" )
+          fi
+          "${cmd[@]}"
+
+      - name: Poll build processing state
+        if: steps.meta.outputs.dry_run != 'true'
+        id: poll
+        run: |
+          set -euo pipefail
+
+          max_attempts=80
+          sleep_seconds=30
+          build_id=""
+          build_state=""
+
+          for ((attempt=1; attempt<=max_attempts; attempt+=1)); do
+            response="$(scripts/appstore/asc_api.sh GET "/v1/builds?filter[app]=${ASC_APP_ID}&filter[version]=${{ steps.meta.outputs.marketing_version }}&filter[buildNumber]=${{ steps.meta.outputs.build_number }}&sort=-uploadedDate&limit=1")"
+
+            parsed="$(printf '%s' "$response" | python3 -c 'import json,sys; items=(json.load(sys.stdin).get(\"data\") or []); print(\"|\" if not items else \"{}|{}\".format(items[0].get(\"id\", \"\"), (items[0].get(\"attributes\") or {}).get(\"processingState\", \"\")))')"
+
+            build_id="${parsed%%|*}"
+            build_state="${parsed#*|}"
+
+            if [[ -z "$build_id" ]]; then
+              echo "Build not visible yet (attempt ${attempt}/${max_attempts})."
+              sleep "$sleep_seconds"
+              continue
+            fi
+
+            echo "Build ${build_id} state: ${build_state}"
+
+            if [[ "$build_state" == "VALID" ]]; then
+              echo "build_id=$build_id" >> "$GITHUB_OUTPUT"
+              echo "build_state=$build_state" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            if [[ "$build_state" == "FAILED" || "$build_state" == "INVALID" ]]; then
+              echo "::error::Build processing failed for app=${ASC_APP_ID} version=${{ steps.meta.outputs.marketing_version }} build=${{ steps.meta.outputs.build_number }} state=${build_state}"
+              exit 1
+            fi
+
+            sleep "$sleep_seconds"
+          done
+
+          echo "::error::Timed out waiting for TestFlight processing for app=${ASC_APP_ID} version=${{ steps.meta.outputs.marketing_version }} build=${{ steps.meta.outputs.build_number }}"
+          exit 1
+
+      - name: Assign build to internal beta group
+        if: steps.meta.outputs.dry_run != 'true'
+        run: |
+          set -euo pipefail
+          python3 -c 'import json; print(json.dumps({"data":[{"type":"builds","id":"${{ steps.poll.outputs.build_id }}"}]}))' > build/add-to-group.json
+          scripts/appstore/asc_api.sh POST "/v1/betaGroups/${ASC_INTERNAL_BETA_GROUP_ID}/relationships/builds" build/add-to-group.json >/dev/null
+
+      - name: Upsert TestFlight What to Test
+        if: steps.meta.outputs.dry_run != 'true'
+        env:
+          BUILD_ID: ${{ steps.poll.outputs.build_id }}
+          LOCALE: ${{ env.ASC_PRIMARY_LOCALE }}
+          WHATS_NEW_FILE: ${{ steps.meta.outputs.what_to_test_file }}
+        run: |
+          set -euo pipefail
+
+          lookup="$(scripts/appstore/asc_api.sh GET "/v1/betaBuildLocalizations?filter[build]=${BUILD_ID}&filter[locale]=${LOCALE}&limit=1")"
+          localization_id="$(printf '%s' "$lookup" | python3 -c 'import json,sys; items=(json.load(sys.stdin).get(\"data\") or []); print(items[0].get(\"id\", \"\") if items else \"\")')"
+
+          python3 -c 'import json,os,pathlib; text=pathlib.Path(os.environ[\"WHATS_NEW_FILE\"]).read_text(encoding=\"utf-8\", errors=\"replace\").strip() or \"Internal beta build for validation.\"; text=text[:4000]; print(json.dumps({\"data\":{\"type\":\"betaBuildLocalizations\",\"attributes\":{\"locale\":os.environ[\"LOCALE\"],\"whatsNew\":text},\"relationships\":{\"build\":{\"data\":{\"type\":\"builds\",\"id\":os.environ[\"BUILD_ID\"]}}}}}))' > build/beta-localization.json
+
+          if [[ -n "$localization_id" ]]; then
+            scripts/appstore/asc_api.sh PATCH "/v1/betaBuildLocalizations/${localization_id}" build/beta-localization.json >/dev/null
+          else
+            scripts/appstore/asc_api.sh POST "/v1/betaBuildLocalizations" build/beta-localization.json >/dev/null
+          fi
+
+      - name: Write TestFlight context artifact
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          python3 -c 'import json; print(json.dumps({"tag":"${{ steps.meta.outputs.tag }}","marketing_version":"${{ steps.meta.outputs.marketing_version }}","build_number":"${{ steps.meta.outputs.build_number }}","build_id":"${{ steps.poll.outputs.build_id || '' }}","prerelease":"${{ steps.meta.outputs.prerelease }}","dry_run":"${{ steps.meta.outputs.dry_run }}"}))' > build/testflight-context.json
+
+      - name: Upload TestFlight context artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testflight-context
+          path: build/testflight-context.json
+
+      - name: Trigger App Store submission workflow
+        if: success() && steps.meta.outputs.dry_run != 'true' && github.event_name == 'release' && github.event.release.prerelease == false
+        uses: actions/github-script@v8
+        with:
+          script: |
+            await github.request('POST /repos/{owner}/{repo}/dispatches', {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              event_type: 'appstore-submit-ready',
+              client_payload: {
+                tag: context.payload.release.tag_name,
+                version: '${{ steps.meta.outputs.marketing_version }}',
+                build_number: '${{ steps.meta.outputs.build_number }}',
+                build_id: '${{ steps.poll.outputs.build_id }}',
+                prerelease: false
+              }
+            })
+
+      - name: Cleanup private key material
+        if: always()
+        run: |
+          set -euo pipefail
+          rm -f "$HOME/.appstoreconnect/private_keys/AuthKey_${APPSTORE_API_KEY_ID}.p8"
