@@ -169,12 +169,20 @@ jobs:
           APPLE_DIST_CERT_PASSWORD: ${{ secrets.APPLE_DIST_CERT_PASSWORD }}
           APPLE_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
 
+      - name: Compute temporary keychain name
+        id: keychain
+        run: |
+          set -euo pipefail
+          echo "name=signing_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
+
       - name: Import code-signing certificate
-        uses: apple-actions/import-codesign-certs@v3
+        uses: apple-actions/import-codesign-certs@v6
         with:
           p12-file-base64: ${{ secrets.APPLE_DIST_CERT_P12_BASE64 }}
           p12-password: ${{ secrets.APPLE_DIST_CERT_PASSWORD }}
           keychain-password: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
+          keychain: ${{ steps.keychain.outputs.name }}
+          create-keychain: true
 
       - name: Download provisioning profiles
         uses: apple-actions/download-provisioning-profiles@v5
@@ -363,3 +371,5 @@ jobs:
         run: |
           set -euo pipefail
           rm -f "$HOME/.appstoreconnect/private_keys/AuthKey_${APPSTORE_API_KEY_ID}.p8"
+          security delete-keychain "${{ steps.keychain.outputs.name }}.keychain" >/dev/null 2>&1 || true
+          security delete-keychain "${{ steps.keychain.outputs.name }}.keychain-db" >/dev/null 2>&1 || true
