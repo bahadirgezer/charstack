@@ -1,0 +1,289 @@
+name: App Store Submit
+
+on:
+  repository_dispatch:
+    types: [appstore-submit-ready]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (optional, e.g. v1.2.3)"
+        required: false
+        type: string
+      version:
+        description: "Marketing version override (x.y.z)"
+        required: false
+        type: string
+      build_number:
+        description: "Build number override (CFBundleVersion)"
+        required: false
+        type: string
+      build_id:
+        description: "ASC build ID override (optional)"
+        required: false
+        type: string
+      sync_assets:
+        description: "Sync appstore-assets screenshots/previews before submission"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: appstore-submit-${{ github.event_name == 'repository_dispatch' && github.event.client_payload.tag || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    name: Preflight Checks
+    if: github.event_name == 'workflow_dispatch' || github.event.client_payload.prerelease != true
+    runs-on: [self-hosted, macOS, ARM64, bgpro-charstack]
+    timeout-minutes: 45
+
+    outputs:
+      tag: ${{ steps.ctx.outputs.tag }}
+      version: ${{ steps.ctx.outputs.version }}
+      build_number: ${{ steps.build.outputs.build_number }}
+      build_id: ${{ steps.build.outputs.build_id }}
+      app_store_version_id: ${{ steps.appstore.outputs.app_store_version_id }}
+      sync_assets: ${{ steps.ctx.outputs.sync_assets }}
+
+    env:
+      ASC_APP_ID: ${{ vars.ASC_APP_ID }}
+      ASC_PRIMARY_LOCALE: ${{ vars.ASC_PRIMARY_LOCALE || 'en-US' }}
+      ASC_SUPPORT_URL: ${{ vars.ASC_SUPPORT_URL }}
+      ASC_PRIVACY_POLICY_URL: ${{ vars.ASC_PRIVACY_POLICY_URL }}
+      APPSTORE_API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+      APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+      APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
+
+    steps:
+      - name: Checkout dispatch tag
+        if: github.event_name == 'repository_dispatch' && github.event.client_payload.tag != ''
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.client_payload.tag }}
+
+      - name: Checkout workflow_dispatch tag
+        if: github.event_name == 'workflow_dispatch' && inputs.tag != ''
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Checkout default branch
+        if: (github.event_name == 'workflow_dispatch' && inputs.tag == '') || (github.event_name == 'repository_dispatch' && github.event.client_payload.tag == '')
+        uses: actions/checkout@v6
+
+      - name: Validate required configuration
+        run: |
+          set -euo pipefail
+          required=(
+            ASC_APP_ID
+            APPSTORE_API_PRIVATE_KEY
+            APPSTORE_API_KEY_ID
+            APPSTORE_API_ISSUER_ID
+          )
+          for name in "${required[@]}"; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "error: missing required secret/var: $name" >&2
+              exit 1
+            fi
+          done
+
+      - name: Build submission context
+        id: ctx
+        env:
+          DISPATCH_TAG: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.tag || '' }}
+          DISPATCH_VERSION: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.version || '' }}
+          DISPATCH_BUILD_NUMBER: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.build_number || '' }}
+          DISPATCH_BUILD_ID: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.build_id || '' }}
+          DISPATCH_SYNC_ASSETS: false
+          INPUT_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || '' }}
+          INPUT_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.version || '' }}
+          INPUT_BUILD_NUMBER: ${{ github.event_name == 'workflow_dispatch' && inputs.build_number || '' }}
+          INPUT_BUILD_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.build_id || '' }}
+          INPUT_SYNC_ASSETS: ${{ github.event_name == 'workflow_dispatch' && inputs.sync_assets || false }}
+        run: |
+          set -euo pipefail
+
+          tag="${DISPATCH_TAG:-${INPUT_TAG:-}}"
+          version="${DISPATCH_VERSION:-${INPUT_VERSION:-}}"
+          requested_build_number="${DISPATCH_BUILD_NUMBER:-${INPUT_BUILD_NUMBER:-}}"
+          requested_build_id="${DISPATCH_BUILD_ID:-${INPUT_BUILD_ID:-}}"
+
+          if [[ -z "$version" ]]; then
+            if [[ "$tag" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+              version="${BASH_REMATCH[1]}"
+            else
+              version="$(tr -d '[:space:]' < VERSION)"
+            fi
+          fi
+
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "error: invalid marketing version '$version'" >&2
+            exit 1
+          fi
+
+          if [[ -n "$requested_build_number" ]]; then
+            if ! [[ "$requested_build_number" =~ ^[0-9]+$ ]]; then
+              echo "error: build_number must be numeric" >&2
+              exit 1
+            fi
+          fi
+
+          sync_assets="false"
+          if [[ "${INPUT_SYNC_ASSETS}" == "true" ]]; then
+            sync_assets="true"
+          fi
+
+          {
+            echo "tag=$tag"
+            echo "version=$version"
+            echo "requested_build_number=$requested_build_number"
+            echo "requested_build_id=$requested_build_id"
+            echo "sync_assets=$sync_assets"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Validate submission checklist
+        run: |
+          set -euo pipefail
+          python3 scripts/appstore/validate_submission_checklist.py
+        env:
+          VERSION: ${{ steps.ctx.outputs.version }}
+
+      - name: Resolve App Store version
+        id: appstore
+        run: |
+          set -euo pipefail
+
+          lookup="$(scripts/appstore/asc_api.sh GET "/v1/appStoreVersions?filter[app]=${ASC_APP_ID}&filter[versionString]=${{ steps.ctx.outputs.version }}&filter[platform]=IOS&limit=1")"
+          app_store_version_id="$(printf '%s' "$lookup" | python3 -c 'import json,sys; items=(json.load(sys.stdin).get("data") or []); print(items[0].get("id", "") if items else "")')"
+
+          if [[ -z "$app_store_version_id" ]]; then
+            VERSION_STRING="${{ steps.ctx.outputs.version }}" APP_ID="${ASC_APP_ID}" python3 -c 'import json,os; print(json.dumps({"data":{"type":"appStoreVersions","attributes":{"platform":"IOS","versionString":os.environ["VERSION_STRING"]},"relationships":{"app":{"data":{"type":"apps","id":os.environ["APP_ID"]}}}}}))' > build/create-app-store-version.json
+            created="$(scripts/appstore/asc_api.sh POST "/v1/appStoreVersions" build/create-app-store-version.json)"
+            app_store_version_id="$(printf '%s' "$created" | python3 -c 'import json,sys; payload=json.load(sys.stdin); print((payload.get("data") or {}).get("id", ""))')"
+          fi
+
+          if [[ -z "$app_store_version_id" ]]; then
+            echo "error: failed to resolve appStoreVersion ID" >&2
+            exit 1
+          fi
+
+          echo "app_store_version_id=$app_store_version_id" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve VALID build
+        id: build
+        run: |
+          set -euo pipefail
+
+          requested_build_id="${{ steps.ctx.outputs.requested_build_id }}"
+          requested_build_number="${{ steps.ctx.outputs.requested_build_number }}"
+
+          if [[ -n "$requested_build_id" ]]; then
+            response="$(scripts/appstore/asc_api.sh GET "/v1/builds/${requested_build_id}")"
+            parsed="$(printf '%s' "$response" | python3 -c 'import json,sys; payload=json.load(sys.stdin); data=(payload.get("data") or {}); attrs=(data.get("attributes") or {}); print("{}|{}|{}".format(data.get("id", ""), attrs.get("processingState", ""), attrs.get("version", "")))')"
+            build_id="${parsed%%|*}"
+            rest="${parsed#*|}"
+            state="${rest%%|*}"
+            build_number="${rest#*|}"
+          else
+            query="/v1/builds?filter[app]=${ASC_APP_ID}&filter[version]=${{ steps.ctx.outputs.version }}&sort=-uploadedDate&limit=10"
+            if [[ -n "$requested_build_number" ]]; then
+              query+="&filter[buildNumber]=${requested_build_number}"
+            fi
+
+            response="$(scripts/appstore/asc_api.sh GET "$query")"
+            parsed="$(printf '%s' "$response" | python3 -c 'import json,sys; items=(json.load(sys.stdin).get("data") or []); selected=next((i for i in items if (i.get("attributes") or {}).get("processingState") == "VALID"), None); print("||" if selected is None else "{}|{}|{}".format(selected.get("id", ""), (selected.get("attributes") or {}).get("processingState", ""), (selected.get("attributes") or {}).get("version", "")))')"
+            build_id="${parsed%%|*}"
+            rest="${parsed#*|}"
+            state="${rest%%|*}"
+            build_number="${rest#*|}"
+          fi
+
+          if [[ -z "$build_id" ]]; then
+            echo "error: no matching build found for app=${ASC_APP_ID} version=${{ steps.ctx.outputs.version }} build_number=${requested_build_number:-latest}" >&2
+            exit 1
+          fi
+
+          if [[ "$state" != "VALID" ]]; then
+            echo "error: selected build is not VALID (state=$state, id=$build_id)" >&2
+            exit 1
+          fi
+
+          echo "build_id=$build_id" >> "$GITHUB_OUTPUT"
+          echo "build_number=$build_number" >> "$GITHUB_OUTPUT"
+
+      - name: Optional asset sync
+        if: steps.ctx.outputs.sync_assets == 'true'
+        run: |
+          set -euo pipefail
+          scripts/appstore/sync_assets.sh \
+            --app-store-version-id "${{ steps.appstore.outputs.app_store_version_id }}" \
+            --locale "${ASC_PRIMARY_LOCALE}" \
+            --root "appstore-assets"
+
+      - name: Upload preflight artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: appstore-submit-preflight
+          path: build/submission-preflight.json
+
+  submit:
+    name: Submit for App Review
+    needs: preflight
+    if: needs.preflight.result == 'success'
+    runs-on: [self-hosted, macOS, ARM64, bgpro-charstack]
+    timeout-minutes: 30
+    environment: appstore-production
+
+    env:
+      APPSTORE_API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+      APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+      APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Prepare workspace
+        run: mkdir -p build
+
+      - name: Attach build to App Store version
+        run: |
+          set -euo pipefail
+
+          python3 -c 'import json; print(json.dumps({"data":{"type":"builds","id":"${{ needs.preflight.outputs.build_id }}"}}))' > build/attach-build.json
+          scripts/appstore/asc_api.sh PATCH "/v1/appStoreVersions/${{ needs.preflight.outputs.app_store_version_id }}/relationships/build" build/attach-build.json >/dev/null
+
+      - name: Set manual release control
+        run: |
+          set -euo pipefail
+
+          python3 -c 'import json; print(json.dumps({"data":{"type":"appStoreVersions","id":"${{ needs.preflight.outputs.app_store_version_id }}","attributes":{"releaseType":"MANUAL"}}}))' > build/set-release-type.json
+          scripts/appstore/asc_api.sh PATCH "/v1/appStoreVersions/${{ needs.preflight.outputs.app_store_version_id }}" build/set-release-type.json >/dev/null
+
+      - name: Submit App Store version for review
+        run: |
+          set -euo pipefail
+
+          existing="$(scripts/appstore/asc_api.sh GET "/v1/appStoreVersionSubmissions?filter[appStoreVersion]=${{ needs.preflight.outputs.app_store_version_id }}&limit=1")"
+          existing_id="$(printf '%s' "$existing" | python3 -c 'import json,sys; items=(json.load(sys.stdin).get("data") or []); print(items[0].get("id", "") if items else "")')"
+
+          if [[ -n "$existing_id" ]]; then
+            echo "Submission already exists: $existing_id"
+            exit 0
+          fi
+
+          python3 -c 'import json; print(json.dumps({"data":{"type":"appStoreVersionSubmissions","relationships":{"appStoreVersion":{"data":{"type":"appStoreVersions","id":"${{ needs.preflight.outputs.app_store_version_id }}"}}}}}))' > build/create-submission.json
+          scripts/appstore/asc_api.sh POST "/v1/appStoreVersionSubmissions" build/create-submission.json >/dev/null
+
+      - name: Log submission summary
+        run: |
+          set -euo pipefail
+          echo "Submitted version=${{ needs.preflight.outputs.version }} build_number=${{ needs.preflight.outputs.build_number }} build_id=${{ needs.preflight.outputs.build_id }}"
