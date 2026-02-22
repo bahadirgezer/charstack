@@ -41,6 +41,7 @@ jobs:
       ASC_INTERNAL_BETA_GROUP_ID: ${{ vars.ASC_INTERNAL_BETA_GROUP_ID }}
       ASC_PRIMARY_LOCALE: ${{ vars.ASC_PRIMARY_LOCALE || 'en-US' }}
       ASC_BUNDLE_ID: ${{ vars.ASC_BUNDLE_ID || 'com.bgzxr.Charstack' }}
+      ASC_TEAM_ID: ${{ vars.ASC_TEAM_ID || '54CDMF6B5L' }}
       APPSTORE_API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
       APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
       APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
@@ -156,7 +157,6 @@ jobs:
             APPLE_DIST_CERT_P12_BASE64
             APPLE_DIST_CERT_PASSWORD
             APPLE_KEYCHAIN_PASSWORD
-            APPSTORE_EXPORT_OPTIONS_BASE64
           )
           for name in "${required[@]}"; do
             if [[ -z "${!name:-}" ]]; then
@@ -168,7 +168,6 @@ jobs:
           APPLE_DIST_CERT_P12_BASE64: ${{ secrets.APPLE_DIST_CERT_P12_BASE64 }}
           APPLE_DIST_CERT_PASSWORD: ${{ secrets.APPLE_DIST_CERT_PASSWORD }}
           APPLE_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
-          APPSTORE_EXPORT_OPTIONS_BASE64: ${{ secrets.APPSTORE_EXPORT_OPTIONS_BASE64 }}
 
       - name: Import code-signing certificate
         uses: apple-actions/import-codesign-certs@v3
@@ -204,7 +203,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p build
-          printf '%s' "${{ secrets.APPSTORE_EXPORT_OPTIONS_BASE64 }}" | { base64 --decode 2>/dev/null || base64 -D; } > build/ExportOptions.plist
+          ASC_TEAM_ID="$ASC_TEAM_ID" python3 -c 'import os,plistlib,sys; team=os.environ["ASC_TEAM_ID"].strip(); payload={"method":"app-store-connect","signingStyle":"automatic","teamID":team,"stripSwiftSymbols":True,"uploadSymbols":True}; (not team) and (_ for _ in ()).throw(SystemExit("error: ASC_TEAM_ID is required for export options generation")); plistlib.dump(payload, sys.stdout.buffer, fmt=plistlib.FMT_XML, sort_keys=False)' > build/ExportOptions.plist
           xcodebuild -exportArchive \
             -archivePath build/Charstack.xcarchive \
             -exportPath build \
