@@ -27,7 +27,7 @@ Legend:
 | `APPLE_DIST_CERT_P12_BASE64` | Required | Not used | Needed only for signed IPA build/upload in Stage 1. |
 | `APPLE_DIST_CERT_PASSWORD` | Required | Not used | Needed only for Stage 1 certificate import. |
 | `APPLE_KEYCHAIN_PASSWORD` | Required | Not used | Needed only for Stage 1 certificate import. |
-| `APPSTORE_EXPORT_OPTIONS_BASE64` | Required | Not used | Needed only for Stage 1 `xcodebuild -exportArchive`. |
+| `APPSTORE_EXPORT_OPTIONS_BASE64` | Optional | Not used | Legacy override only; workflow now auto-generates ExportOptions with `app-store-connect`. |
 
 ### Variables
 
@@ -37,6 +37,7 @@ Legend:
 | `ASC_INTERNAL_BETA_GROUP_ID` | Required | Not used | Internal TestFlight group for auto-assignment. |
 | `ASC_PRIMARY_LOCALE` | Optional | Optional | Defaults to `en-US`. |
 | `ASC_BUNDLE_ID` | Optional | Not used | Defaults to `com.bgzxr.Charstack` in workflow. |
+| `ASC_TEAM_ID` | Optional | Not used | Defaults to `54CDMF6B5L`; used for auto-generated ExportOptions. |
 | `ASC_SUPPORT_URL` | Not used | Optional | If set, must match checklist URL during submission preflight. |
 | `ASC_PRIVACY_POLICY_URL` | Not used | Optional | If set, must match checklist URL during submission preflight. |
 | `APPSTORE_PROVIDER_SHORT_NAME` | Optional | Not used | Optional Transporter provider hint for Stage 1. |
