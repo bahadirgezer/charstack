@@ -335,7 +335,7 @@ jobs:
 
       - name: Upload TestFlight context artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: testflight-context
           path: build/testflight-context.json
