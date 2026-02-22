@@ -510,5 +510,3 @@ jobs:
         run: |
           set -euo pipefail
           rm -f "$HOME/.appstoreconnect/private_keys/AuthKey_${APPSTORE_API_KEY_ID}.p8"
-          security delete-keychain "${{ steps.keychain.outputs.name }}.keychain" >/dev/null 2>&1 || true
-          security delete-keychain "${{ steps.keychain.outputs.name }}.keychain-db" >/dev/null 2>&1 || true
