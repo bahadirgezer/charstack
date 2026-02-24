@@ -41,6 +41,7 @@ jobs:
       ASC_INTERNAL_BETA_GROUP_ID: ${{ vars.ASC_INTERNAL_BETA_GROUP_ID }}
       ASC_PRIMARY_LOCALE: ${{ vars.ASC_PRIMARY_LOCALE || 'en-US' }}
       ASC_BUNDLE_ID: ${{ vars.ASC_BUNDLE_ID || 'com.bgzxr.Charstack' }}
+      ASC_TEAM_ID: ${{ vars.ASC_TEAM_ID || '54CDMF6B5L' }}
       APPSTORE_API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
       APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
       APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
@@ -156,7 +157,6 @@ jobs:
             APPLE_DIST_CERT_P12_BASE64
             APPLE_DIST_CERT_PASSWORD
             APPLE_KEYCHAIN_PASSWORD
-            APPSTORE_EXPORT_OPTIONS_BASE64
           )
           for name in "${required[@]}"; do
             if [[ -z "${!name:-}" ]]; then
@@ -168,23 +168,140 @@ jobs:
           APPLE_DIST_CERT_P12_BASE64: ${{ secrets.APPLE_DIST_CERT_P12_BASE64 }}
           APPLE_DIST_CERT_PASSWORD: ${{ secrets.APPLE_DIST_CERT_PASSWORD }}
           APPLE_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
-          APPSTORE_EXPORT_OPTIONS_BASE64: ${{ secrets.APPSTORE_EXPORT_OPTIONS_BASE64 }}
+
+      - name: Compute temporary keychain name
+        id: keychain
+        run: |
+          set -euo pipefail
+          echo "name=signing_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
 
       - name: Import code-signing certificate
-        uses: apple-actions/import-codesign-certs@v3
+        uses: apple-actions/import-codesign-certs@v6
         with:
           p12-file-base64: ${{ secrets.APPLE_DIST_CERT_P12_BASE64 }}
           p12-password: ${{ secrets.APPLE_DIST_CERT_PASSWORD }}
           keychain-password: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
+          keychain: ${{ steps.keychain.outputs.name }}
+          create-keychain: true
+
+      - name: Clean local provisioning profile cache
+        run: |
+          set -euo pipefail
+          profile_dir="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$profile_dir"
+          rm -f "$profile_dir"/*.mobileprovision
 
       - name: Download provisioning profiles
-        uses: apple-actions/download-provisioning-profiles@v1
+        uses: apple-actions/download-provisioning-profiles@v5
         with:
           bundle-id: ${{ env.ASC_BUNDLE_ID }}
           profile-type: IOS_APP_STORE
           issuer-id: ${{ secrets.APPSTORE_API_ISSUER_ID }}
           api-key-id: ${{ secrets.APPSTORE_API_KEY_ID }}
           api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+
+      - name: Resolve matching profile for imported certificate
+        id: signing
+        env:
+          P12_BASE64: ${{ secrets.APPLE_DIST_CERT_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.APPLE_DIST_CERT_PASSWORD }}
+          TEAM_ID: ${{ env.ASC_TEAM_ID }}
+          BUNDLE_ID: ${{ env.ASC_BUNDLE_ID }}
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          profile_dir="$HOME/Library/MobileDevice/Provisioning Profiles"
+
+          printf '%s' "$P12_BASE64" | { base64 --decode 2>/dev/null || base64 -D; } > build/dist-cert.p12
+          openssl pkcs12 -legacy -in build/dist-cert.p12 -clcerts -nokeys -passin "pass:${P12_PASSWORD}" > build/dist-cert.pem
+          p12_serial="$(openssl x509 -in build/dist-cert.pem -noout -serial | cut -d= -f2)"
+          p12_sha1="$(openssl x509 -in build/dist-cert.pem -noout -fingerprint | cut -d= -f2 | tr -d ':')"
+
+          echo "Imported distribution cert serial: ${p12_serial}"
+          echo "Imported distribution cert sha1: ${p12_sha1}"
+
+          selection="$(python3 - "$profile_dir" "$TEAM_ID" "$BUNDLE_ID" "$p12_serial" <<'PY'
+          import datetime as dt
+          import glob
+          import os
+          import plistlib
+          import subprocess
+          import sys
+          import tempfile
+
+          profile_dir, team_id, bundle_id, wanted_serial = sys.argv[1:5]
+          target_app_id = f"{team_id}.{bundle_id}"
+
+          profiles = sorted(glob.glob(os.path.join(profile_dir, "*.mobileprovision")))
+          if not profiles:
+              print("No provisioning profiles were installed after download step.", file=sys.stderr)
+              sys.exit(1)
+
+          matches = []
+          for path in profiles:
+              try:
+                  plist_bytes = subprocess.check_output(
+                      ["openssl", "smime", "-inform", "der", "-verify", "-noverify", "-in", path, "-outform", "DER"],
+                      stderr=subprocess.DEVNULL,
+                  )
+                  profile = plistlib.loads(plist_bytes)
+              except Exception:
+                  print(f"Skipping unreadable profile: {path}", file=sys.stderr)
+                  continue
+
+              name = profile.get("Name", "")
+              uuid = profile.get("UUID", "")
+              team = (profile.get("TeamIdentifier") or [""])[0]
+              app_id = ((profile.get("Entitlements") or {}).get("application-identifier") or "")
+              expires = profile.get("ExpirationDate")
+
+              cert_serials = []
+              for cert_der in profile.get("DeveloperCertificates") or []:
+                  with tempfile.NamedTemporaryFile(suffix=".cer") as f:
+                      f.write(cert_der)
+                      f.flush()
+                      out = subprocess.check_output(
+                          ["openssl", "x509", "-inform", "DER", "-in", f.name, "-noout", "-serial", "-fingerprint", "-sha256"],
+                          text=True,
+                      )
+                  serial = ""
+                  fingerprint = ""
+                  for line in out.splitlines():
+                      if line.startswith("serial="):
+                          serial = line.split("=", 1)[1].strip()
+                      if "Fingerprint=" in line:
+                          fingerprint = line.split("=", 1)[1].strip()
+                  if serial:
+                      cert_serials.append(serial)
+                      print(f"Profile '{name}' cert serial={serial} sha256={fingerprint}", file=sys.stderr)
+
+              print(f"Profile '{name}' uuid={uuid} team={team} appId={app_id}", file=sys.stderr)
+              if team == team_id and app_id == target_app_id and wanted_serial in cert_serials:
+                  expiry_key = expires or dt.datetime.min
+                  matches.append((expiry_key, uuid, name))
+
+          if not matches:
+              print(
+                  f"No downloaded profile includes distribution cert serial={wanted_serial} for {target_app_id}.",
+                  file=sys.stderr,
+              )
+              sys.exit(1)
+
+          matches.sort(key=lambda t: t[0], reverse=True)
+          _expiry, uuid, name = matches[0]
+          print(f"{uuid}\t{name}")
+          PY
+          )"
+
+          IFS=$'\t' read -r profile_uuid profile_name <<< "$selection"
+
+          {
+            echo "profile_uuid=$profile_uuid"
+            echo "cert_sha1=$p12_sha1"
+            echo "profile_name<<EOF"
+            echo "$profile_name"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Build signed archive
         run: |
@@ -204,7 +321,36 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p build
-          printf '%s' "${{ secrets.APPSTORE_EXPORT_OPTIONS_BASE64 }}" | { base64 --decode 2>/dev/null || base64 -D; } > build/ExportOptions.plist
+          ASC_TEAM_ID="$ASC_TEAM_ID" ASC_BUNDLE_ID="$ASC_BUNDLE_ID" PROFILE_NAME="${{ steps.signing.outputs.profile_name }}" CERT_SHA1="${{ steps.signing.outputs.cert_sha1 }}" python3 - <<'PY' > build/ExportOptions.plist
+          import os
+          import plistlib
+          import sys
+
+          team = os.environ["ASC_TEAM_ID"].strip()
+          bundle = os.environ["ASC_BUNDLE_ID"].strip()
+          profile_name = os.environ["PROFILE_NAME"].strip()
+          cert_sha1 = os.environ["CERT_SHA1"].strip()
+
+          if not team:
+              raise SystemExit("error: ASC_TEAM_ID is required for export options generation")
+          if not bundle:
+              raise SystemExit("error: ASC_BUNDLE_ID is required for export options generation")
+          if not profile_name:
+              raise SystemExit("error: matching provisioning profile name is required for export options generation")
+          if not cert_sha1:
+              raise SystemExit("error: signing certificate sha1 is required for export options generation")
+
+          payload = {
+              "method": "app-store-connect",
+              "signingStyle": "manual",
+              "teamID": team,
+              "signingCertificate": cert_sha1,
+              "provisioningProfiles": {bundle: profile_name},
+              "stripSwiftSymbols": True,
+              "uploadSymbols": True,
+          }
+          plistlib.dump(payload, sys.stdout.buffer, fmt=plistlib.FMT_XML, sort_keys=False)
+          PY
           xcodebuild -exportArchive \
             -archivePath build/Charstack.xcarchive \
             -exportPath build \
@@ -336,7 +482,7 @@ jobs:
 
       - name: Upload TestFlight context artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: testflight-context
           path: build/testflight-context.json

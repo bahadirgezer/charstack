@@ -18,7 +18,7 @@ Behavior:
 
 - Checks out release tag.
 - Builds signed archive for `generic/platform=iOS`.
-- Exports `.ipa` using `APPSTORE_EXPORT_OPTIONS_BASE64`.
+- Exports `.ipa` using auto-generated `ExportOptions.plist` (`method=app-store-connect`).
 - Uploads with `xcrun iTMSTransporter` using API key auth.
 - Polls App Store Connect build processing state until `VALID`.
 - Adds the build to internal beta group `ASC_INTERNAL_BETA_GROUP_ID`.

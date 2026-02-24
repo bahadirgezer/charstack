@@ -17,7 +17,7 @@ jobs:
   update-pr-docs:
     name: Update PR docs
     runs-on: [self-hosted, macOS, ARM64, bgpro-charstack]
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event.pull_request.head.repo.full_name == github.repository && !startsWith(github.event.pull_request.head.ref, 'dependabot/')
     env:
       PR_DOCS_DIR: /tmp/pr-docs-${{ github.run_id }}-${{ github.run_attempt }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
