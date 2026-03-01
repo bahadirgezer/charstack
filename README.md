@@ -1,4 +1,4 @@
-# Charstack
+# Charflow
 
 A minimal daily task manager for iOS. Four regions, the 1-3-5 rule, and nothing else.
 
@@ -11,11 +11,11 @@ A minimal daily task manager for iOS. Four regions, the 1-3-5 rule, and nothing 
 
 ## The idea
 
-Most task apps become infinite lists. Charstack doesn't let that happen.
+Most task apps become infinite lists. Charflow doesn't let that happen.
 
 Your day is split into **Morning**, **Afternoon**, **Evening**, and **Backlog**. Each active region follows the **1-3-5 rule**: 1 must-do, up to 3 complementary tasks, up to 5 misc. That's it. Anything unfinished rolls to Backlog at the end of the day.
 
-> "Char" (چهار) = Persian for **4**. Four regions, one focused day.
+> "Char" (چهار) = Persian for **4**. Four regions, one focused flow.
 
 ## Tech
 
@@ -31,6 +31,22 @@ open charstack/Charstack.xcodeproj
 
 Requires Xcode 16+ and macOS 14+.
 
+## Versioning
+
+- `VERSION` is the source of truth for semantic app version (`MARKETING_VERSION` / `CFBundleShortVersionString`).
+- `CURRENT_PROJECT_VERSION` (`CFBundleVersion`) should be a monotonically increasing build number.
+- Sync project settings from `VERSION`:
+
+```bash
+./scripts/sync-xcode-version.sh
+```
+
+- Sync version and set a local build number:
+
+```bash
+./scripts/sync-xcode-version.sh --build-number 42
+```
+
 ## Status
 
 MVP in progress. Not yet on the App Store.
@@ -41,6 +57,7 @@ MVP in progress. Not yet on the App Store.
 - [Requirements](docs/REQUIREMENTS.md) — functional specs
 - [Architecture](docs/ARCHITECTURE.md) — technical decisions
 - [Roadmap](docs/ROADMAP.md) — what's next
+- [App Store Connect Pipeline](docs/appstore-connect/pipeline.md) — TestFlight and App Review automation
 - [Changelog](CHANGELOG.md) — version history
 
 ## License

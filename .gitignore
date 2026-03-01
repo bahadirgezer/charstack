@@ -21,8 +21,6 @@ DerivedData/
 .build/
 Packages/
 Package.pins
-Package.resolved
-*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
 .swiftpm/
 
 # CocoaPods (not used, but just in case)
@@ -54,6 +52,8 @@ fastlane/test_output
 *~
 .idea/
 .vscode/
+__pycache__/
+*.pyc
 
 # Playgrounds
 timeline.xctimeline
@@ -68,6 +68,10 @@ playground.xcworkspace
 # Custom
 docs/scratch/
 .gemini/
+.logs/
+secrets/
+*.p8
+AuthKey_*.p8
 
 # Claude local files
 .claude/**
