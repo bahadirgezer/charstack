@@ -456,9 +456,9 @@ jobs:
           set -euo pipefail
 
           lookup="$(scripts/appstore/asc_api.sh GET "/v1/betaBuildLocalizations?filter[build]=${BUILD_ID}&filter[locale]=${LOCALE}&limit=1")"
-          localization_id="$(printf '%s' "$lookup" | python3 -c 'import json,sys; items=(json.load(sys.stdin).get(\"data\") or []); print(items[0].get(\"id\", \"\") if items else \"\")')"
+          localization_id="$(printf '%s' "$lookup" | python3 -c 'import json,sys; items=(json.load(sys.stdin).get("data") or []); print(items[0].get("id", "") if items else "")')"
 
-          python3 -c 'import json,os,pathlib; text=pathlib.Path(os.environ[\"WHATS_NEW_FILE\"]).read_text(encoding=\"utf-8\", errors=\"replace\").strip() or \"Internal beta build for validation.\"; text=text[:4000]; print(json.dumps({\"data\":{\"type\":\"betaBuildLocalizations\",\"attributes\":{\"locale\":os.environ[\"LOCALE\"],\"whatsNew\":text},\"relationships\":{\"build\":{\"data\":{\"type\":\"builds\",\"id\":os.environ[\"BUILD_ID\"]}}}}}))' > build/beta-localization.json
+          python3 -c 'import json,os,pathlib; text=pathlib.Path(os.environ["WHATS_NEW_FILE"]).read_text(encoding="utf-8", errors="replace").strip() or "Internal beta build for validation."; text=text[:4000]; print(json.dumps({"data":{"type":"betaBuildLocalizations","attributes":{"locale":os.environ["LOCALE"],"whatsNew":text},"relationships":{"build":{"data":{"type":"builds","id":os.environ["BUILD_ID"]}}}}}))' > build/beta-localization.json
 
           if [[ -n "$localization_id" ]]; then
             scripts/appstore/asc_api.sh PATCH "/v1/betaBuildLocalizations/${localization_id}" build/beta-localization.json >/dev/null
