@@ -364,7 +364,7 @@ jobs:
           echo "ipa_path=$ipa_path" >> "$GITHUB_OUTPUT"
         id: export
 
-      - name: Generate JWT (dry-run validation)
+      - name: Validate App Store Connect API auth
         run: |
           set -euo pipefail
           token="$(scripts/appstore/jwt.sh)"
@@ -372,7 +372,8 @@ jobs:
             echo "error: empty JWT" >&2
             exit 1
           fi
-          echo "JWT generation succeeded."
+          ASC_JWT_TOKEN="$token" scripts/appstore/asc_api.sh GET "/v1/apps?limit=1" >/dev/null
+          echo "JWT generation and ASC API auth succeeded."
 
       - name: Install App Store Connect private key for Transporter
         if: steps.meta.outputs.dry_run != 'true'
