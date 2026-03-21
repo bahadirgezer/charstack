@@ -1,0 +1,10 @@
+{
+  "privacyPolicyUrl": "https://example.com/privacy",
+  "supportUrl": "https://example.com/support",
+  "description": "A minimal daily task manager for iOS.",
+  "subtitle": "Daily focus with 1-3-5",
+  "keywords": "tasks,productivity,daily,focus",
+  "ageRatingConfirmed": true,
+  "exportComplianceConfirmed": true,
+  "reviewNotesPath": "appstore-assets/review/review-notes.md"
+}

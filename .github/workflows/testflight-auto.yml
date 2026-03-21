@@ -38,7 +38,6 @@ jobs:
 
     env:
       ASC_APP_ID: ${{ vars.ASC_APP_ID }}
-      ASC_INTERNAL_BETA_GROUP_ID: ${{ vars.ASC_INTERNAL_BETA_GROUP_ID }}
       ASC_PRIMARY_LOCALE: ${{ vars.ASC_PRIMARY_LOCALE || 'en-US' }}
       ASC_BUNDLE_ID: ${{ vars.ASC_BUNDLE_ID || 'com.bgzxr.Charstack' }}
       ASC_TEAM_ID: ${{ vars.ASC_TEAM_ID || '54CDMF6B5L' }}
@@ -150,7 +149,6 @@ jobs:
           set -euo pipefail
           required=(
             ASC_APP_ID
-            ASC_INTERNAL_BETA_GROUP_ID
             APPSTORE_API_PRIVATE_KEY
             APPSTORE_API_KEY_ID
             APPSTORE_API_ISSUER_ID
@@ -364,7 +362,7 @@ jobs:
           echo "ipa_path=$ipa_path" >> "$GITHUB_OUTPUT"
         id: export
 
-      - name: Generate JWT (dry-run validation)
+      - name: Validate App Store Connect API auth
         run: |
           set -euo pipefail
           token="$(scripts/appstore/jwt.sh)"
@@ -372,7 +370,8 @@ jobs:
             echo "error: empty JWT" >&2
             exit 1
           fi
-          echo "JWT generation succeeded."
+          ASC_JWT_TOKEN="$token" scripts/appstore/asc_api.sh GET "/v1/apps?limit=1" >/dev/null
+          echo "JWT generation and ASC API auth succeeded."
 
       - name: Install App Store Connect private key for Transporter
         if: steps.meta.outputs.dry_run != 'true'
@@ -414,12 +413,13 @@ jobs:
           build_state=""
 
           for ((attempt=1; attempt<=max_attempts; attempt+=1)); do
-            response="$(scripts/appstore/asc_api.sh GET "/v1/builds?filter[app]=${ASC_APP_ID}&filter[version]=${{ steps.meta.outputs.marketing_version }}&filter[buildNumber]=${{ steps.meta.outputs.build_number }}&sort=-uploadedDate&limit=1")"
+            response="$(scripts/appstore/asc_api.sh GET "/v1/builds?filter[app]=${ASC_APP_ID}&include=preReleaseVersion&sort=-uploadedDate&limit=50")"
 
-            parsed="$(printf '%s' "$response" | python3 -c 'import json,sys; items=(json.load(sys.stdin).get(\"data\") or []); print(\"|\" if not items else \"{}|{}\".format(items[0].get(\"id\", \"\"), (items[0].get(\"attributes\") or {}).get(\"processingState\", \"\")))')"
+            parsed="$(printf '%s' "$response" | python3 scripts/appstore/select_build.py --marketing-version "${{ steps.meta.outputs.marketing_version }}" --build-number "${{ steps.meta.outputs.build_number }}")"
 
             build_id="${parsed%%|*}"
-            build_state="${parsed#*|}"
+            rest="${parsed#*|}"
+            build_state="${rest%%|*}"
 
             if [[ -z "$build_id" ]]; then
               echo "Build not visible yet (attempt ${attempt}/${max_attempts})."
@@ -446,13 +446,6 @@ jobs:
           echo "::error::Timed out waiting for TestFlight processing for app=${ASC_APP_ID} version=${{ steps.meta.outputs.marketing_version }} build=${{ steps.meta.outputs.build_number }}"
           exit 1
 
-      - name: Assign build to internal beta group
-        if: steps.meta.outputs.dry_run != 'true'
-        run: |
-          set -euo pipefail
-          python3 -c 'import json; print(json.dumps({"data":[{"type":"builds","id":"${{ steps.poll.outputs.build_id }}"}]}))' > build/add-to-group.json
-          scripts/appstore/asc_api.sh POST "/v1/betaGroups/${ASC_INTERNAL_BETA_GROUP_ID}/relationships/builds" build/add-to-group.json >/dev/null
-
       - name: Upsert TestFlight What to Test
         if: steps.meta.outputs.dry_run != 'true'
         env:
@@ -463,9 +456,9 @@ jobs:
           set -euo pipefail
 
           lookup="$(scripts/appstore/asc_api.sh GET "/v1/betaBuildLocalizations?filter[build]=${BUILD_ID}&filter[locale]=${LOCALE}&limit=1")"
-          localization_id="$(printf '%s' "$lookup" | python3 -c 'import json,sys; items=(json.load(sys.stdin).get(\"data\") or []); print(items[0].get(\"id\", \"\") if items else \"\")')"
+          localization_id="$(printf '%s' "$lookup" | python3 -c 'import json,sys; items=(json.load(sys.stdin).get("data") or []); print(items[0].get("id", "") if items else "")')"
 
-          python3 -c 'import json,os,pathlib; text=pathlib.Path(os.environ[\"WHATS_NEW_FILE\"]).read_text(encoding=\"utf-8\", errors=\"replace\").strip() or \"Internal beta build for validation.\"; text=text[:4000]; print(json.dumps({\"data\":{\"type\":\"betaBuildLocalizations\",\"attributes\":{\"locale\":os.environ[\"LOCALE\"],\"whatsNew\":text},\"relationships\":{\"build\":{\"data\":{\"type\":\"builds\",\"id\":os.environ[\"BUILD_ID\"]}}}}}))' > build/beta-localization.json
+          python3 -c 'import json,os,pathlib; text=pathlib.Path(os.environ["WHATS_NEW_FILE"]).read_text(encoding="utf-8", errors="replace").strip() or "Internal beta build for validation."; text=text[:4000]; print(json.dumps({"data":{"type":"betaBuildLocalizations","attributes":{"locale":os.environ["LOCALE"],"whatsNew":text},"relationships":{"build":{"data":{"type":"builds","id":os.environ["BUILD_ID"]}}}}}))' > build/beta-localization.json
 
           if [[ -n "$localization_id" ]]; then
             scripts/appstore/asc_api.sh PATCH "/v1/betaBuildLocalizations/${localization_id}" build/beta-localization.json >/dev/null

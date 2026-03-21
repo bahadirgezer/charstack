@@ -107,6 +107,58 @@ header_b64="$(printf '%s' "$header_json" | b64url)"
 claims_b64="$(printf '%s' "$claims_json" | b64url)"
 unsigned_token="${header_b64}.${claims_b64}"
 
-signature_b64="$(printf '%s' "$unsigned_token" | openssl dgst -binary -sha256 -sign "$key_file" | b64url)"
+signature_b64="$(
+  printf '%s' "$unsigned_token" \
+    | openssl dgst -binary -sha256 -sign "$key_file" \
+    | python3 -c '
+import base64
+import sys
+
+
+def parse_length(data: bytes, index: int) -> tuple[int, int]:
+    if index >= len(data):
+        raise ValueError("unexpected end of DER input")
+    first = data[index]
+    index += 1
+    if first < 0x80:
+        return first, index
+    count = first & 0x7F
+    if count == 0 or index + count > len(data):
+        raise ValueError("invalid DER length")
+    length = int.from_bytes(data[index:index + count], "big")
+    return length, index + count
+
+
+def parse_integer(data: bytes, index: int) -> tuple[bytes, int]:
+    if index >= len(data) or data[index] != 0x02:
+        raise ValueError("expected DER INTEGER")
+    index += 1
+    length, index = parse_length(data, index)
+    value = data[index:index + length]
+    if len(value) != length:
+        raise ValueError("truncated DER INTEGER")
+    value = value.lstrip(b"\x00")
+    if len(value) > 32:
+        raise ValueError("DER INTEGER too large for ES256")
+    return value.rjust(32, b"\x00"), index + length
+
+
+der = sys.stdin.buffer.read()
+if not der or der[0] != 0x30:
+    raise SystemExit("error: expected DER SEQUENCE for ECDSA signature")
+
+seq_length, offset = parse_length(der, 1)
+if offset + seq_length != len(der):
+    raise SystemExit("error: malformed DER ECDSA signature")
+
+r, offset = parse_integer(der, offset)
+s, offset = parse_integer(der, offset)
+if offset != len(der):
+    raise SystemExit("error: trailing bytes in DER ECDSA signature")
+
+jose = r + s
+print(base64.urlsafe_b64encode(jose).decode().rstrip("="))
+'
+)"
 
 printf '%s\n' "${unsigned_token}.${signature_b64}"

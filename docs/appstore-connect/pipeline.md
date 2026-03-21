@@ -21,7 +21,6 @@ Behavior:
 - Exports `.ipa` using auto-generated `ExportOptions.plist` (`method=app-store-connect`).
 - Uploads with `xcrun iTMSTransporter` using API key auth.
 - Polls App Store Connect build processing state until `VALID`.
-- Adds the build to internal beta group `ASC_INTERNAL_BETA_GROUP_ID`.
 - Upserts TestFlight `What to Test` from release body or dispatch input.
 - Dispatches `appstore-submit-ready` event for non-prerelease releases.
 
