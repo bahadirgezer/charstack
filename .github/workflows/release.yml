@@ -285,20 +285,37 @@ jobs:
           git push origin "${{ steps.ver.outputs.tag }}"
 
       # ── Create GitHub Release ──
+      # `gh release create` handles immutable-release repositories by creating
+      # a draft, uploading assets, then publishing. Prefer RELEASE_TOKEN here
+      # so the published release can fan out to downstream release workflows.
       - name: Create GitHub Release
         if: steps.ver.outputs.skip != 'true'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.ver.outputs.tag }}
-          name: ${{ steps.ver.outputs.tag }}
-          body_path: ${{ steps.ai_notes.outputs.has_notes == 'true' && 'build/RELEASE_NOTES.md' || 'build/CHANGELOG.md' }}
-          prerelease: ${{ steps.ver.outputs.prerelease == 'true' }}
-          generate_release_notes: false
-          files: |
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ steps.ver.outputs.tag }}
+          RELEASE_NAME: ${{ steps.ver.outputs.tag }}
+          RELEASE_IS_PRERELEASE: ${{ steps.ver.outputs.prerelease }}
+          NOTES_FILE: ${{ steps.ai_notes.outputs.has_notes == 'true' && 'build/RELEASE_NOTES.md' || 'build/CHANGELOG.md' }}
+        run: |
+          set -euo pipefail
+
+          args=(
+            "$TAG_NAME"
+            --verify-tag
+            --title "$RELEASE_NAME"
+            --notes-file "$NOTES_FILE"
+          )
+
+          if [[ "$RELEASE_IS_PRERELEASE" == "true" ]]; then
+            args+=(--prerelease)
+          fi
+
+          args+=(
             build/App.xcarchive.zip
             build/CHANGELOG.md
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          )
+
+          gh release create "${args[@]}"
 
       # ── Update VERSION file (best-effort) ──
       # Uses RELEASE_TOKEN (PAT) to push through branch protection.
