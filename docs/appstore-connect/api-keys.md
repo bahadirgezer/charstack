@@ -34,7 +34,6 @@ Legend:
 | Name | Stage 1 | Stage 2 | Notes |
 |---|---|---|---|
 | `ASC_APP_ID` | Required | Required | App Store Connect app identifier. |
-| `ASC_INTERNAL_BETA_GROUP_ID` | Required | Not used | Internal TestFlight group for auto-assignment. |
 | `ASC_PRIMARY_LOCALE` | Optional | Optional | Defaults to `en-US`. |
 | `ASC_BUNDLE_ID` | Optional | Not used | Defaults to `com.bgzxr.Charstack` in workflow. |
 | `ASC_TEAM_ID` | Optional | Not used | Defaults to `54CDMF6B5L`; used for auto-generated ExportOptions. |

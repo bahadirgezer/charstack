@@ -38,7 +38,6 @@ jobs:
 
     env:
       ASC_APP_ID: ${{ vars.ASC_APP_ID }}
-      ASC_INTERNAL_BETA_GROUP_ID: ${{ vars.ASC_INTERNAL_BETA_GROUP_ID }}
       ASC_PRIMARY_LOCALE: ${{ vars.ASC_PRIMARY_LOCALE || 'en-US' }}
       ASC_BUNDLE_ID: ${{ vars.ASC_BUNDLE_ID || 'com.bgzxr.Charstack' }}
       ASC_TEAM_ID: ${{ vars.ASC_TEAM_ID || '54CDMF6B5L' }}
@@ -150,7 +149,6 @@ jobs:
           set -euo pipefail
           required=(
             ASC_APP_ID
-            ASC_INTERNAL_BETA_GROUP_ID
             APPSTORE_API_PRIVATE_KEY
             APPSTORE_API_KEY_ID
             APPSTORE_API_ISSUER_ID
@@ -447,13 +445,6 @@ jobs:
 
           echo "::error::Timed out waiting for TestFlight processing for app=${ASC_APP_ID} version=${{ steps.meta.outputs.marketing_version }} build=${{ steps.meta.outputs.build_number }}"
           exit 1
-
-      - name: Assign build to internal beta group
-        if: steps.meta.outputs.dry_run != 'true'
-        run: |
-          set -euo pipefail
-          python3 -c 'import json; print(json.dumps({"data":[{"type":"builds","id":"${{ steps.poll.outputs.build_id }}"}]}))' > build/add-to-group.json
-          scripts/appstore/asc_api.sh POST "/v1/betaGroups/${ASC_INTERNAL_BETA_GROUP_ID}/relationships/builds" build/add-to-group.json >/dev/null
 
       - name: Upsert TestFlight What to Test
         if: steps.meta.outputs.dry_run != 'true'
