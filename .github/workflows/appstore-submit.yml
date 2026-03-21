@@ -193,13 +193,16 @@ jobs:
             state="${rest%%|*}"
             build_number="${rest#*|}"
           else
-            query="/v1/builds?filter[app]=${ASC_APP_ID}&filter[version]=${{ steps.ctx.outputs.version }}&sort=-uploadedDate&limit=10"
-            if [[ -n "$requested_build_number" ]]; then
-              query+="&filter[buildNumber]=${requested_build_number}"
-            fi
-
+            query="/v1/builds?filter[app]=${ASC_APP_ID}&include=preReleaseVersion&sort=-uploadedDate&limit=50"
             response="$(scripts/appstore/asc_api.sh GET "$query")"
-            parsed="$(printf '%s' "$response" | python3 -c 'import json,sys; items=(json.load(sys.stdin).get("data") or []); selected=next((i for i in items if (i.get("attributes") or {}).get("processingState") == "VALID"), None); print("||" if selected is None else "{}|{}|{}".format(selected.get("id", ""), (selected.get("attributes") or {}).get("processingState", ""), (selected.get("attributes") or {}).get("version", "")))')"
+            selector_args=(
+              scripts/appstore/select_build.py
+              --marketing-version "${{ steps.ctx.outputs.version }}"
+            )
+            if [[ -n "$requested_build_number" ]]; then
+              selector_args+=( --build-number "$requested_build_number" )
+            fi
+            parsed="$(printf '%s' "$response" | python3 "${selector_args[@]}")"
             build_id="${parsed%%|*}"
             rest="${parsed#*|}"
             state="${rest%%|*}"

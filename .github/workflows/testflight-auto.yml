@@ -415,12 +415,13 @@ jobs:
           build_state=""
 
           for ((attempt=1; attempt<=max_attempts; attempt+=1)); do
-            response="$(scripts/appstore/asc_api.sh GET "/v1/builds?filter[app]=${ASC_APP_ID}&filter[version]=${{ steps.meta.outputs.marketing_version }}&filter[buildNumber]=${{ steps.meta.outputs.build_number }}&sort=-uploadedDate&limit=1")"
+            response="$(scripts/appstore/asc_api.sh GET "/v1/builds?filter[app]=${ASC_APP_ID}&include=preReleaseVersion&sort=-uploadedDate&limit=50")"
 
-            parsed="$(printf '%s' "$response" | python3 -c 'import json,sys; items=(json.load(sys.stdin).get(\"data\") or []); print(\"|\" if not items else \"{}|{}\".format(items[0].get(\"id\", \"\"), (items[0].get(\"attributes\") or {}).get(\"processingState\", \"\")))')"
+            parsed="$(printf '%s' "$response" | python3 scripts/appstore/select_build.py --marketing-version "${{ steps.meta.outputs.marketing_version }}" --build-number "${{ steps.meta.outputs.build_number }}")"
 
             build_id="${parsed%%|*}"
-            build_state="${parsed#*|}"
+            rest="${parsed#*|}"
+            build_state="${rest%%|*}"
 
             if [[ -z "$build_id" ]]; then
               echo "Build not visible yet (attempt ${attempt}/${max_attempts})."
