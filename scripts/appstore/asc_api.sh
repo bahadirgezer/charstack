@@ -137,6 +137,7 @@ while (( ATTEMPT <= MAX_RETRIES )); do
 
   curl_args=(
     -sS
+    --globoff
     -X "$METHOD"
     "$URL"
     -H "Authorization: Bearer $JWT_TOKEN"
