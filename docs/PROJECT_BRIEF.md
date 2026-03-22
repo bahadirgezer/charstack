@@ -1,14 +1,14 @@
-# Charstack — Project Brief (iOS-first)
+# Charflow — Project Brief (iOS-first)
 
 ## One-liner
-**Charstack** is a clean, minimal daily task manager built around **four day regions**—**Morning**, **Afternoon**, **Evening**, and **Backlog**—where each active region uses a **1–3–5** structure to keep focus and prevent list bloat.
+**Charflow** is a clean, minimal daily task manager built around **four day regions**—**Morning**, **Afternoon**, **Evening**, and **Backlog**—where each active region uses a **1–3–5** structure to keep focus and prevent list bloat.
 
-> Char = Persian root for **4** → four regions that define the day.
+> Char = Persian root for **4** → four regions, one focused flow.
 
 ---
 
-## The problem Charstack solves
-Most task apps become endless lists. People over-plan, lose focus, and tasks silently rot. Charstack replaces the infinite backlog mindset with a *daily, time-of-day* plan that stays small, intentional, and doable—while still preserving anything unfinished.
+## The problem Charflow solves
+Most task apps become endless lists. People over-plan, lose focus, and tasks silently rot. Charflow replaces the infinite backlog mindset with a *daily, time-of-day* plan that stays small, intentional, and doable—while still preserving anything unfinished.
 
 ---
 
