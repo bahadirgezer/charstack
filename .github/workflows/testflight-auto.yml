@@ -482,7 +482,7 @@ jobs:
 
       - name: Trigger App Store submission workflow
         if: success() && steps.meta.outputs.dry_run != 'true' && github.event_name == 'release' && github.event.release.prerelease == false
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             await github.request('POST /repos/{owner}/{repo}/dispatches', {
