@@ -190,7 +190,7 @@ jobs:
           rm -f "$profile_dir"/*.mobileprovision
 
       - name: Download provisioning profiles
-        uses: apple-actions/download-provisioning-profiles@v5
+        uses: apple-actions/download-provisioning-profiles@v6
         with:
           bundle-id: ${{ env.ASC_BUNDLE_ID }}
           profile-type: IOS_APP_STORE
